@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="ikoro_green_900">#0D3328</color>
+    <color name="ikoro_green_700">#1A5E4A</color>
+    <color name="ikoro_green_500">#2E8B6E</color>
+    <color name="ikoro_gold_500">#D4AF37</color>
+    <color name="ikoro_gold_300">#F0D878</color>
+    <color name="ikoro_charcoal">#1C1C1E</color>
+    <color name="ikoro_surface">#121212</color>
+    <color name="ikoro_on_surface">#E8E8E8</color>
+    <color name="ikoro_error">#FF6B6B</color>
+</resources>

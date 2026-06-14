@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Ikoro</string>
+    <string name="app_tagline">Free. Community. Wealth.</string>
+    <string name="chat">Chat</string>
+    <string name="wallet">Wallet</string>
+    <string name="identity">Identity</string>
+    <string name="market">Market</string>
+    <string name="calls">Calls</string>
+    <string name="create_identity">Create Identity</string>
+    <string name="restore_identity">Restore Identity</string>
+    <string name="onboarding_title">Your keys. Your community. Your wealth.</string>
+    <string name="mnemonic_warning">Write these 12 words down and keep them safe. They are the only way to recover your identity.</string>
+    <string name="confirm">Confirm</string>
+    <string name="continue_text">Continue</string>
+    <string name="back">Back</string>
+    <string name="seed_input_hint">Enter your 12-word recovery phrase</string>
+</resources>
