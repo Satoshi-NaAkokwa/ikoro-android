@@ -14,8 +14,8 @@ android {
         applicationId = "com.ikoro.android"
         minSdk = 24
         targetSdk = 34
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = 5
+        versionName = "1.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -39,9 +39,9 @@ android {
     signingConfigs {
         create("release") {
             storeFile = file("/root/.openclaw/workspace/ikoro-android/app/ikoro-release.keystore")
-            storePassword = System.getenv("IKORO_KEYSTORE_PASSWORD") ?: "IkoroGlobal2026!"
+            storePassword = System.getenv("IKORO_KEYSTORE_PASSWORD") ?: "CHANGEME"
             keyAlias = "ikoro"
-            keyPassword = System.getenv("IKORO_KEY_PASSWORD") ?: "IkoroGlobal2026!"
+            keyPassword = System.getenv("IKORO_KEY_PASSWORD") ?: "CHANGEME"
         }
     }
 
@@ -49,7 +49,12 @@ android {
         release {
             isMinifyEnabled = false
             isShrinkResources = false
-            signingConfig = signingConfigs.getByName("release")
+            val releasePassword = System.getenv("IKORO_KEYSTORE_PASSWORD")
+            signingConfig = if (releasePassword != null) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -121,6 +126,25 @@ dependencies {
     implementation("androidx.room:room-runtime:2.6.1")
     implementation("androidx.room:room-ktx:2.6.1")
     ksp("androidx.room:room-compiler:2.6.1")
+
+    // Networking / crypto
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
+    implementation("com.google.zxing:core:3.5.3")
+
+    // Bitcoin / Lightning (Breez Liquid)
+    implementation("breez_sdk_liquid:bindings-android:0.12.3-dev1") {
+        exclude(group = "org.bouncycastle", module = "bcprov-jdk15to18")
+    }
+
+    // Bitcoin / BIP-39
+    implementation("org.bitcoinj:bitcoinj-core:0.17-alpha1") {
+        exclude(group = "org.bouncycastle", module = "bcprov-jdk15to18")
+    }
+
+    // EVM (web3j)
+    implementation("org.web3j:core:4.10.3")
+    implementation("org.web3j:contracts:4.10.3")
 
     // Logging
     implementation("com.jakewharton.timber:timber:5.0.1")

@@ -41,13 +41,15 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun renderApp() {
+        ServiceLocator.init(this)
+        val identityManager = ServiceLocator.identityManager(this)
         setContent {
             IkoroTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    IkoroApp(identityManager = ServiceLocator.identityManager)
+                    IkoroApp(identityManager = identityManager)
                 }
             }
         }
