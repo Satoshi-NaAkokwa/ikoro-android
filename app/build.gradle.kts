@@ -38,27 +38,23 @@ android {
 
     signingConfigs {
         create("release") {
-            storeFile = file("/root/.openclaw/workspace/ikoro-android/app/ikoro-release.keystore")
-            storePassword = System.getenv("IKORO_KEYSTORE_PASSWORD") ?: "CHANGEME"
+            storeFile = file("ikoro-release.keystore")
+            storePassword = System.getenv("IKORO_KEYSTORE_PASSWORD") ?: "dummy-keystore-password"
             keyAlias = "ikoro"
-            keyPassword = System.getenv("IKORO_KEY_PASSWORD") ?: "CHANGEME"
+            keyPassword = System.getenv("IKORO_KEY_PASSWORD") ?: "dummy-key-password"
         }
     }
 
     buildTypes {
-        release {
+        getByName("release") {
             isMinifyEnabled = false
             isShrinkResources = false
-            val releasePassword = System.getenv("IKORO_KEYSTORE_PASSWORD")
-            signingConfig = if (releasePassword != null) {
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            signingConfig = if ((System.getenv("IKORO_KEYSTORE_PASSWORD") ?: "").isNotBlank()) {
                 signingConfigs.getByName("release")
             } else {
                 signingConfigs.getByName("debug")
             }
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
             ndk {
                 abiFilters += listOf("arm64-v8a", "armeabi-v7a")
             }
