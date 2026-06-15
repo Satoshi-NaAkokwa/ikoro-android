@@ -12,12 +12,19 @@ object KeyDerivation {
 
     // EVM (BIP-44): m/44'/60'/0'/0/0
     fun deriveEvmAddress(seed: ByteArray): String {
-        val key = derivePath(seed, listOf(
-            hard(44), hard(60), hard(0), normal(0), normal(0)
-        ))
+        val key = derivePath(seed, evmPath)
         val ecPair = ECKeyPair.create(key.privKeyBytes)
         return Keys.getAddress(ecPair)
     }
+
+    fun deriveEthereumKeyPair(seed: ByteArray): ECKeyPair {
+        val key = derivePath(seed, evmPath)
+        return ECKeyPair.create(key.privKeyBytes)
+    }
+
+    private val evmPath = listOf(
+        hard(44), hard(60), hard(0), normal(0), normal(0)
+    )
 
     // Rootstock uses same path with did:pkh
     fun deriveRootstockAddress(seed: ByteArray): String {

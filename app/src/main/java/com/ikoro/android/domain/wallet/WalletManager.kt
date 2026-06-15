@@ -76,9 +76,16 @@ class WalletManager {
         )
     }
 
-    fun sendToken(chain: String, to: String, amount: String): Result<String> {
+    fun sendToken(chain: String, credentials: org.web3j.crypto.Credentials, to: String, amount: String): Result<String> {
         Timber.i("Send %s %s on %s", amount, to, chain)
         return Result.success("tx_hash_placeholder")
+    }
+
+    suspend fun send(chainId: String, credentials: org.web3j.crypto.Credentials, to: String, amount: String): Result<String> {
+        return when (chainId) {
+            "rootstock" -> rootstock.sendRBTC(credentials, to, java.math.BigDecimal(amount))
+            else -> Result.failure(Exception("Send not implemented for $chainId"))
+        }
     }
 
     @Deprecated("Use loadAssets instead")

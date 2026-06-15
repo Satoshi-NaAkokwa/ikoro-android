@@ -49,6 +49,18 @@ class IdentityManager(private val store: IdentityStore) {
 
     fun loadExistingIdentity(): Identity? = store.loadIdentity()
 
+    fun deriveEvmKeyPair(): Result<org.web3j.crypto.ECKeyPair> {
+        return try {
+            val identity = store.loadIdentity() ?: return Result.failure(IllegalStateException("No identity"))
+            val seed = Bip39Helper.mnemonicToSeed(identity.mnemonic)
+            val pair = KeyDerivation.deriveEthereumKeyPair(seed)
+            Result.success(pair)
+        } catch (e: Exception) {
+            Timber.e(e, "deriveEvmKeyPair failed")
+            Result.failure(e)
+        }
+    }
+
     fun clearIdentity() {
         store.clearIdentity()
     }

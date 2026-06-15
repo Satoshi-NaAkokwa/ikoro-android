@@ -1,10 +1,16 @@
 package com.ikoro.android.domain.wallet
 
 import com.ikoro.android.BuildConfig
+import org.web3j.crypto.Credentials
+import org.web3j.crypto.RawTransaction
+import org.web3j.crypto.TransactionEncoder
 import org.web3j.protocol.Web3j
 import org.web3j.protocol.core.DefaultBlockParameterName
 import org.web3j.protocol.http.HttpService
+import org.web3j.utils.Convert
+import org.web3j.utils.Numeric
 import timber.log.Timber
+import java.math.BigDecimal
 import java.math.BigInteger
 
 class RootstockManager {
@@ -37,4 +43,38 @@ class RootstockManager {
     }
 
     fun chainId(): Long = 30L
+
+    suspend fun sendRBTC(
+        credentials: Credentials,
+        toAddress: String,
+        amountEth: BigDecimal
+    ): Result<String> {
+        return try {
+            val to = toAddress.removePrefix("0x")
+            val gasPrice = web3.ethGasPrice().send().gasPrice
+            val nonce = web3.ethGetTransactionCount(
+                credentials.address,
+                DefaultBlockParameterName.LATEST
+            ).send().transactionCount
+            val value = Convert.toWei(amountEth, Convert.Unit.ETHER).toBigIntegerExact()
+            val gasLimit = BigInteger.valueOf(21_000)
+            val raw = RawTransaction.createEtherTransaction(
+                nonce,
+                gasPrice,
+                gasLimit,
+                to,
+                value
+            )
+            val signed = TransactionEncoder.signMessage(raw, chainId(), credentials)
+            val hex = Numeric.toHexString(signed)
+            val response = web3.ethSendRawTransaction(hex).send()
+            if (response.hasError()) {
+                return Result.failure(Exception(response.error.message))
+            }
+            Result.success(response.transactionHash)
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to send RBTC")
+            Result.failure(e)
+        }
+    }
 }
