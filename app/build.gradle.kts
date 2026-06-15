@@ -40,7 +40,7 @@ android {
         buildConfigField("String", "AGABRA_NPUB", "\"$agabraNpub\"")
 
         buildConfigField("String", "AGABRA_INVITE_ENDPOINT", "\"https://smp.ugogbe.info/agbara/invite\"")
-        buildConfigField("String", "SMP_SERVER_URI", "\"smp://XmpJtV5tAdZq4hdvB1Wm3iJEKuf4KWOyY-5qD8TczEw=.ugogbe.info\"")
+        buildConfigField("String", "SMP_SERVER_URI", "\"smp://kG8TDZb0A1r1MCy5do5eVfQTInWPliSI7XOjJObSy1E=:ikoro-smp-pass-2026@smp.ugogbe.info:5223,443\"")
     }
 
     signingConfigs {
