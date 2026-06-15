@@ -36,7 +36,7 @@ android {
         buildConfigField("String", "ETHERSCAN_API_KEY", "\"$etherscanApiKey\"")
 
         val agabraNpub: String = project.findProperty("agabraNpub") as? String
-            ?: "npub1agbara000000000000000000000000000000000000000000000000000"
+            ?: "npub13ufag8855wayvsf0kzu9ml3dh8yc55pp0z89fd3pnswdxp28gfsqch86wq"
         buildConfigField("String", "AGABRA_NPUB", "\"$agabraNpub\"")
 
         buildConfigField("String", "AGABRA_INVITE_ENDPOINT", "\"https://smp.ugogbe.info/agbara/invite\"")
