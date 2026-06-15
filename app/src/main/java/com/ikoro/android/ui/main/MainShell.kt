@@ -35,7 +35,7 @@ import com.ikoro.android.ui.wallet.WalletScreen
 private fun MainContent(selected: Int, identityManager: IdentityManager) {
     when (selected) {
         0 -> ChatScreen()
-        1 -> WalletScreen()
+        1 -> WalletScreen(identityManager)
         2 -> IdentityScreen(identityManager)
         3 -> MarketScreen()
         4 -> CallsScreen()

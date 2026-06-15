@@ -1,12 +1,22 @@
 package com.ikoro.android.ui.onboarding
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
+import android.widget.Toast
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -19,6 +29,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -26,23 +37,52 @@ import com.ikoro.android.R
 import com.ikoro.android.data.model.Identity
 import com.ikoro.android.domain.identity.IdentityManager
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun CreateIdentityScreen(
     identityManager: IdentityManager,
     onDone: () -> Unit,
     onBack: () -> Unit
 ) {
+    val context = LocalContext.current
     var identity by remember { mutableStateOf<Identity?>(null) }
+    var showVerification by remember { mutableStateOf(false) }
 
     if (identity == null) {
         val result = remember { identityManager.createIdentity() }
         identity = result.getOrNull()
     }
 
+    val currentIdentity = identity
+    if (currentIdentity == null) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(24.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally
+        ) {
+            Text(stringResource(R.string.restore_identity), style = MaterialTheme.typography.titleLarge)
+            Spacer(modifier = Modifier.height(16.dp))
+            OutlinedButton(onClick = onBack) { Text(stringResource(R.string.back)) }
+        }
+        return
+    }
+
+    if (showVerification) {
+        VerifyMnemonicScreen(
+            words = currentIdentity.mnemonic.split(" "),
+            onVerified = { onDone() },
+            onBack = { showVerification = false }
+        )
+        return
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(24.dp),
+            .padding(24.dp)
+            .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Text(
@@ -57,20 +97,32 @@ fun CreateIdentityScreen(
             ),
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text(
-                text = identity?.mnemonic ?: "",
-                modifier = Modifier.padding(16.dp),
-                style = MaterialTheme.typography.bodyLarge,
-                textAlign = TextAlign.Center,
-                color = MaterialTheme.colorScheme.primary
-            )
+            Column(modifier = Modifier.padding(16.dp)) {
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    currentIdentity.mnemonic.split(" ").forEachIndexed { index, word ->
+                        WordChip(index = index + 1, word = word)
+                    }
+                }
+            }
         }
-        Spacer(modifier = Modifier.height(16.dp))
-        Button(
-            onClick = onDone,
+        OutlinedButton(
+            onClick = {
+                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                clipboard.setPrimaryClip(ClipData.newPlainText("Ikoro seed", currentIdentity.mnemonic))
+                Toast.makeText(context, "Seed copied", Toast.LENGTH_SHORT).show()
+            },
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text(stringResource(R.string.confirm))
+            Text(stringResource(R.string.copy_seed))
+        }
+        Button(
+            onClick = { showVerification = true },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(stringResource(R.string.i_wrote_it_down))
         }
         OutlinedButton(
             onClick = onBack,
@@ -78,5 +130,22 @@ fun CreateIdentityScreen(
         ) {
             Text(stringResource(R.string.back))
         }
+    }
+}
+
+@Composable
+private fun WordChip(index: Int, word: String) {
+    Card(
+        shape = RoundedCornerShape(8.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer
+        )
+    ) {
+        Text(
+            text = "$index. $word",
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onPrimaryContainer
+        )
     }
 }

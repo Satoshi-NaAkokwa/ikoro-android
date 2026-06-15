@@ -1,28 +1,80 @@
 package com.ikoro.android.ui.wallet
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.State
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.ikoro.android.R
+import com.ikoro.android.data.model.Asset
+import com.ikoro.android.data.model.Identity
 import com.ikoro.android.di.ServiceLocator
+import com.ikoro.android.domain.identity.IdentityManager
+import com.ikoro.android.ui.components.EmptyAnimations
+import com.ikoro.android.ui.components.EmptyState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun WalletScreen() {
+fun WalletScreen(identityManager: IdentityManager) {
     val walletManager = remember { ServiceLocator.walletManager() }
-    val assets = remember { walletManager.listAssets() }
+    val identityState: State<Identity?> = produceState<Identity?>(null) {
+        value = identityManager.loadExistingIdentity()
+    }
+    val identity = identityState.value
+
+    val assets = remember { mutableStateOf(listOf<Asset>()) }
+
+    LaunchedEffect(identity?.evmAddress) {
+        identity?.evmAddress?.let { address ->
+            assets.value = walletManager.loadAssets(address)
+        }
+    }
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Wallet") }) }
+        topBar = { TopAppBar(title = { Text(stringResource(R.string.wallet)) }) },
+        floatingActionButton = {
+            ExtendedFloatingActionButton(
+                onClick = { /* open send */ },
+                icon = { Icon(Icons.Default.Send, contentDescription = null) },
+                text = { Text("Send") }
+            )
+        }
     ) { padding ->
         Column(
             modifier = Modifier
@@ -30,28 +82,126 @@ fun WalletScreen() {
                 .padding(padding)
                 .padding(16.dp)
         ) {
-            Text(
-                text = "Multi-chain wallet",
-                style = MaterialTheme.typography.headlineSmall
-            )
-            Text(
-                text = "Balance: ${walletManager.getBalance().getOrDefault("...")}",
-                style = MaterialTheme.typography.bodyLarge,
-                modifier = Modifier.padding(vertical = 8.dp)
-            )
-            Text(
-                text = "Assets:",
-                style = MaterialTheme.typography.titleMedium
-            )
-            assets.forEach { asset ->
-                Text(text = "• $asset", style = MaterialTheme.typography.bodyMedium)
+            if (identity == null) {
+                EmptyState(
+                    title = "No identity",
+                    subtitle = "Create or restore your identity to use the wallet.",
+                    animationRes = EmptyAnimations.wallet
+                )
+                return@Column
             }
-            Button(
-                onClick = { /* send flow */ },
-                modifier = Modifier.padding(top = 16.dp)
-            ) {
-                Text("Send")
+
+            WalletHeader(identity.evmAddress, assets.value)
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = "Assets",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                items(assets.value, key = { it.id }) { asset ->
+                    AssetRow(asset)
+                }
             }
         }
     }
+}
+
+@Composable
+private fun WalletHeader(address: String, assets: List<Asset>) {
+    val primary = assets.firstOrNull { it.isPrimary } ?: assets.firstOrNull()
+    Card(
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer
+        ),
+        shape = RoundedCornerShape(20.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.padding(20.dp)) {
+            Text(
+                text = "Total balance",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+            )
+            Text(
+                text = primary?.balance ?: "0 RBTC",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onPrimaryContainer
+            )
+            Text(
+                text = primary?.fiatValue ?: "\u00240.00",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "${address.take(6)}...${address.takeLast(4)}",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+            )
+        }
+    }
+}
+
+@Composable
+private fun AssetRow(asset: Asset) {
+    Card(
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        ),
+        shape = RoundedCornerShape(16.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(asset)
+            Spacer(modifier = Modifier.width(16.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = asset.chainName,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    text = asset.symbol,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Column(horizontalAlignment = Alignment.End) {
+                Text(
+                    text = asset.balance,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    text = asset.fiatValue,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun Box(asset: Asset) {
+    val color = Color(asset.accentColor)
+    Text(
+        text = asset.symbol.first().toString(),
+        color = Color.White,
+        fontSize = 20.sp,
+        fontWeight = FontWeight.Bold,
+        modifier = Modifier
+            .size(48.dp)
+            .clip(CircleShape)
+            .background(color)
+            .padding(12.dp)
+    )
 }

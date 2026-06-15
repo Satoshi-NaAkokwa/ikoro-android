@@ -1,0 +1,58 @@
+[
+    {
+        "merged": "com.ikoro.android.app-merged_res-57:/mipmap-hdpi_ic_launcher_round.png.flat",
+        "source": "com.ikoro.android.app-main-58:/mipmap-hdpi/ic_launcher_round.png"
+    },
+    {
+        "merged": "com.ikoro.android.app-merged_res-57:/mipmap-anydpi-v26_ic_launcher.xml.flat",
+        "source": "com.ikoro.android.app-main-58:/mipmap-anydpi-v26/ic_launcher.xml"
+    },
+    {
+        "merged": "com.ikoro.android.app-merged_res-57:/mipmap-xhdpi_ic_launcher.png.flat",
+        "source": "com.ikoro.android.app-main-58:/mipmap-xhdpi/ic_launcher.png"
+    },
+    {
+        "merged": "com.ikoro.android.app-merged_res-57:/mipmap-anydpi-v26_ic_launcher_round.xml.flat",
+        "source": "com.ikoro.android.app-main-58:/mipmap-anydpi-v26/ic_launcher_round.xml"
+    },
+    {
+        "merged": "com.ikoro.android.app-merged_res-57:/xml_backup_rules.xml.flat",
+        "source": "com.ikoro.android.app-main-58:/xml/backup_rules.xml"
+    },
+    {
+        "merged": "com.ikoro.android.app-merged_res-57:/mipmap-xxxhdpi_ic_launcher.png.flat",
+        "source": "com.ikoro.android.app-main-58:/mipmap-xxxhdpi/ic_launcher.png"
+    },
+    {
+        "merged": "com.ikoro.android.app-merged_res-57:/mipmap-xhdpi_ic_launcher_round.png.flat",
+        "source": "com.ikoro.android.app-main-58:/mipmap-xhdpi/ic_launcher_round.png"
+    },
+    {
+        "merged": "com.ikoro.android.app-merged_res-57:/mipmap-xxxhdpi_ic_launcher_round.png.flat",
+        "source": "com.ikoro.android.app-main-58:/mipmap-xxxhdpi/ic_launcher_round.png"
+    },
+    {
+        "merged": "com.ikoro.android.app-merged_res-57:/mipmap-xxhdpi_ic_launcher_round.png.flat",
+        "source": "com.ikoro.android.app-main-58:/mipmap-xxhdpi/ic_launcher_round.png"
+    },
+    {
+        "merged": "com.ikoro.android.app-merged_res-57:/drawable_ic_launcher_foreground.xml.flat",
+        "source": "com.ikoro.android.app-main-58:/drawable/ic_launcher_foreground.xml"
+    },
+    {
+        "merged": "com.ikoro.android.app-merged_res-57:/mipmap-mdpi_ic_launcher.png.flat",
+        "source": "com.ikoro.android.app-main-58:/mipmap-mdpi/ic_launcher.png"
+    },
+    {
+        "merged": "com.ikoro.android.app-merged_res-57:/mipmap-hdpi_ic_launcher.png.flat",
+        "source": "com.ikoro.android.app-main-58:/mipmap-hdpi/ic_launcher.png"
+    },
+    {
+        "merged": "com.ikoro.android.app-merged_res-57:/mipmap-xxhdpi_ic_launcher.png.flat",
+        "source": "com.ikoro.android.app-main-58:/mipmap-xxhdpi/ic_launcher.png"
+    },
+    {
+        "merged": "com.ikoro.android.app-merged_res-57:/mipmap-mdpi_ic_launcher_round.png.flat",
+        "source": "com.ikoro.android.app-main-58:/mipmap-mdpi/ic_launcher_round.png"
+    }
+]

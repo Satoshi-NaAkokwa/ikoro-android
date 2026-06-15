@@ -10,9 +10,29 @@
     <string name="create_identity">Create Identity</string>
     <string name="restore_identity">Restore Identity</string>
     <string name="onboarding_title">Your keys. Your community. Your wealth.</string>
-    <string name="mnemonic_warning">Write these 12 words down and keep them safe. They are the only way to recover your identity.</string>
+    <string name="mnemonic_warning">Write these 12 words down and keep them safe. They are the only way to recover your identity, wallet and chat history.</string>
     <string name="confirm">Confirm</string>
     <string name="continue_text">Continue</string>
     <string name="back">Back</string>
     <string name="seed_input_hint">Enter your 12-word recovery phrase</string>
+    <string name="copy_seed">Copy to clipboard</string>
+    <string name="i_wrote_it_down">I wrote it down</string>
+    <string name="verify_seed_title">Verify your recovery phrase</string>
+    <string name="verify_seed_subtitle">Tap the missing words in the correct order.</string>
+    <string name="verification_failed">The words you selected do not match your backup phrase. Please try again.</string>
+    <string name="your_identity">Your Ikoro identity</string>
+    <string name="did_label">DID</string>
+    <string name="nostr_label">Nostr</string>
+    <string name="evm_label">EVM</string>
+    <string name="rootstock_label">Rootstock</string>
+    <string name="seed_fingerprint_label">Seed fingerprint</string>
+    <string name="copy">Copy</string>
+    <string name="show_qr">Show QR</string>
+    <string name="close">Close</string>
+
+    <string name="p2p_tab">P2P</string>
+    <string name="airtime_tab">Airtime</string>
+    <string name="tickets_tab">Tickets</string>
+    <string name="savings_tab">Savings</string>
+    <string name="land_tab">Land</string>
 </resources>

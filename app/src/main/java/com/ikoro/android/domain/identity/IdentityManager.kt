@@ -3,19 +3,15 @@ package com.ikoro.android.domain.identity
 import com.ikoro.android.data.local.IdentityStore
 import com.ikoro.android.data.model.Identity
 import timber.log.Timber
-import java.security.SecureRandom
 
 class IdentityManager(private val store: IdentityStore) {
-
-    private val wordList: List<String> by lazy { loadWordList() }
 
     fun hasIdentity(): Boolean = store.hasIdentity
 
     fun createIdentity(): Result<Identity> {
         return try {
-            val entropy = ByteArray(16).apply { SecureRandom().nextBytes(this) }
-            val words = entropyToMnemonic(entropy)
-            val identity = deriveIdentity(words)
+            val mnemonic = Bip39Helper.generateMnemonic(wordCount = 12)
+            val identity = deriveIdentity(mnemonic)
             store.saveIdentity(identity)
             Result.success(identity)
         } catch (e: Exception) {
@@ -26,8 +22,9 @@ class IdentityManager(private val store: IdentityStore) {
 
     fun restoreIdentity(mnemonic: String): Result<Identity> {
         return try {
-            val words = mnemonic.trim().lowercase().split(Regex("\\s+"))
-            require(words.size in listOf(12, 15, 18, 21, 24)) { "Invalid mnemonic length" }
+            val words = Bip39Helper.parseWords(mnemonic)
+            require(Bip39Helper.isValidWordCount(words.size)) { "Mnemonic must be 12, 15, 18, 21 or 24 words" }
+            Bip39Helper.validateMnemonic(words) // throws if invalid checksum/word
             val identity = deriveIdentity(words.joinToString(" "))
             store.saveIdentity(identity)
             Result.success(identity)
@@ -39,32 +36,28 @@ class IdentityManager(private val store: IdentityStore) {
 
     fun loadExistingIdentity(): Identity? = store.loadIdentity()
 
+    fun clearIdentity() {
+        store.clearIdentity()
+    }
+
     private fun deriveIdentity(mnemonic: String): Identity {
-        val seedHash = IdentityStore.sha256(mnemonic)
-        val npub = "npub1" + seedHash.take(32)
-        val evm = "0x" + seedHash.take(40)
-        val did = "did:pkh:eip155:30:$evm"
+        val words = Bip39Helper.parseWords(mnemonic)
+        val seed = Bip39Helper.validateMnemonic(words)
+        val evmAddress = "0x" + KeyDerivation.deriveEvmAddress(seed)
+        val rootstockAddress = "0x" + KeyDerivation.deriveRootstockAddress(seed)
+        val nostr = KeyDerivation.deriveNostrKeyPair(seed)
+        val npub = Bech32Nostr.encodeNpub(nostr.publicKey)
+        val nsec = Bech32Nostr.encodeNsec(nostr.privateKey)
+        val fingerprint = KeyDerivation.seedFingerprint(seed)
+        val did = "did:ethr:$evmAddress"
         return Identity(
             mnemonic = mnemonic,
+            seedFingerprint = fingerprint,
             nostrNpub = npub,
-            evmAddress = evm,
-            did = did
-        )
-    }
-
-    private fun entropyToMnemonic(entropy: ByteArray): String {
-        // Simplified BIP-39: pick random words from the English wordlist.
-        // For production this must implement full BIP-39 checksum.
-        val indices = entropy.map { it.toInt() and 0xFF }.take(12)
-        return indices.map { wordList[it % wordList.size] }.joinToString(" ")
-    }
-
-    private fun loadWordList(): List<String> {
-        return listOf(
-            "abandon","ability","able","about","above","absent","absorb","abstract","absurd","abuse",
-            "access","accident","account","accuse","achieve","acid","acoustic","acquire","across","act",
-            "action","actor","actress","actual","adapt","add","addict","address","adjust","admit",
-            "adult","advance","advice","aerobic","affair","afford","afraid","african","after","again"
+            nostrNsec = nsec,
+            evmAddress = evmAddress,
+            rootstockAddress = rootstockAddress,
+            did = did,
         )
     }
 }

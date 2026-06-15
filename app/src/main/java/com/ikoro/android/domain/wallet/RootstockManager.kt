@@ -15,7 +15,18 @@ class RootstockManager {
 
     fun rpcUrl(): String = BuildConfig.ROOTSTOCK_RPC
 
-    fun getBalance(address: String): Result<BigInteger> {
+    fun getBalance(address: String): Result<String> {
+        return try {
+            val ethBalance = web3.ethGetBalance(address, DefaultBlockParameterName.LATEST).send()
+            val rbtc = org.web3j.utils.Convert.fromWei(ethBalance.balance.toBigDecimal(), org.web3j.utils.Convert.Unit.ETHER)
+            Result.success(String.format("%.6f RBTC", rbtc))
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to fetch Rootstock balance")
+            Result.failure(e)
+        }
+    }
+
+    fun getBalanceRaw(address: String): Result<BigInteger> {
         return try {
             val ethBalance = web3.ethGetBalance(address, DefaultBlockParameterName.LATEST).send()
             Result.success(ethBalance.balance)

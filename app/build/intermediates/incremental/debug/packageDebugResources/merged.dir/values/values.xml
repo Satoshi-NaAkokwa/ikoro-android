@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="ikoro_charcoal">#1C1C1E</color>
+    <color name="ikoro_error">#FF6B6B</color>
+    <color name="ikoro_gold_300">#F0D878</color>
+    <color name="ikoro_gold_500">#D4AF37</color>
+    <color name="ikoro_green_500">#2E8B6E</color>
+    <color name="ikoro_green_700">#1A5E4A</color>
+    <color name="ikoro_green_900">#0D3328</color>
+    <color name="ikoro_on_surface">#E8E8E8</color>
+    <color name="ikoro_surface">#121212</color>
+    <string name="airtime_tab">Airtime</string>
+    <string name="app_name">Ikoro</string>
+    <string name="app_tagline">Free. Community. Wealth.</string>
+    <string name="back">Back</string>
+    <string name="calls">Calls</string>
+    <string name="chat">Chat</string>
+    <string name="close">Close</string>
+    <string name="confirm">Confirm</string>
+    <string name="continue_text">Continue</string>
+    <string name="copy">Copy</string>
+    <string name="copy_seed">Copy to clipboard</string>
+    <string name="create_identity">Create Identity</string>
+    <string name="did_label">DID</string>
+    <string name="evm_label">EVM</string>
+    <string name="i_wrote_it_down">I wrote it down</string>
+    <string name="identity">Identity</string>
+    <string name="land_tab">Land</string>
+    <string name="market">Market</string>
+    <string name="mnemonic_warning">Write these 12 words down and keep them safe. They are the only way to recover your identity, wallet and chat history.</string>
+    <string name="nostr_label">Nostr</string>
+    <string name="onboarding_title">Your keys. Your community. Your wealth.</string>
+    <string name="p2p_tab">P2P</string>
+    <string name="restore_identity">Restore Identity</string>
+    <string name="rootstock_label">Rootstock</string>
+    <string name="savings_tab">Savings</string>
+    <string name="seed_fingerprint_label">Seed fingerprint</string>
+    <string name="seed_input_hint">Enter your 12-word recovery phrase</string>
+    <string name="show_qr">Show QR</string>
+    <string name="tickets_tab">Tickets</string>
+    <string name="verification_failed">The words you selected do not match your backup phrase. Please try again.</string>
+    <string name="verify_seed_subtitle">Tap the missing words in the correct order.</string>
+    <string name="verify_seed_title">Verify your recovery phrase</string>
+    <string name="wallet">Wallet</string>
+    <string name="your_identity">Your Ikoro identity</string>
+    <style name="Theme.Ikoro" parent="android:Theme.Material.NoActionBar">
+        <item name="android:statusBarColor">@color/ikoro_surface</item>
+        <item name="android:navigationBarColor">@color/ikoro_surface</item>
+        <item name="android:windowBackground">@color/ikoro_surface</item>
+    </style>
+</resources>
