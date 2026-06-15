@@ -10,7 +10,7 @@ import java.util.Locale
 object Bip39Helper {
 
     @Throws(MnemonicException.MnemonicLengthException::class)
-    fun generateMnemonic(wordCount: Int = 12): String {
+    fun generateMnemonic(wordCount: Int = 24): String {
         require(wordCount in listOf(12, 15, 18, 21, 24)) { "Invalid word count" }
         val entropyBits = wordCount * 11 - wordCount / 3
         val entropyBytes = entropyBits / 8

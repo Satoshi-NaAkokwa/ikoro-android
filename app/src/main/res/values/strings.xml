@@ -10,11 +10,11 @@
     <string name="create_identity">Create Identity</string>
     <string name="restore_identity">Restore Identity</string>
     <string name="onboarding_title">Your keys. Your community. Your wealth.</string>
-    <string name="mnemonic_warning">Write these 12 words down and keep them safe. They are the only way to recover your identity, wallet and chat history.</string>
+    <string name="mnemonic_warning">Write these 24 words down in order and keep them offline. They are the only way to recover your identity, wallet, chat history and private Agbara channel.</string>
     <string name="confirm">Confirm</string>
     <string name="continue_text">Continue</string>
     <string name="back">Back</string>
-    <string name="seed_input_hint">Enter your 12-word recovery phrase</string>
+    <string name="seed_input_hint">Enter your 24-word recovery phrase</string>
     <string name="copy_seed">Copy to clipboard</string>
     <string name="i_wrote_it_down">I wrote it down</string>
     <string name="verify_seed_title">Verify your recovery phrase</string>

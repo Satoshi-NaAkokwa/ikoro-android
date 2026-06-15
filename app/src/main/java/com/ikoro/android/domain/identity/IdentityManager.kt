@@ -6,11 +6,24 @@ import timber.log.Timber
 
 class IdentityManager(private val store: IdentityStore) {
 
-    fun hasIdentity(): Boolean = store.hasIdentity
+    fun hasValidIdentity(): Boolean {
+        if (!store.hasIdentity) return false
+        val id = store.loadIdentity() ?: return false
+        return id.mnemonic.isNotBlank()
+                && id.nostrNpub.isNotBlank()
+                && id.evmAddress.isNotBlank()
+                && id.did.isNotBlank()
+    }
+
+    fun resetIfCorrupt() {
+        if (!hasValidIdentity()) {
+            store.clearIdentity()
+        }
+    }
 
     fun createIdentity(): Result<Identity> {
         return try {
-            val mnemonic = Bip39Helper.generateMnemonic(wordCount = 12)
+            val mnemonic = Bip39Helper.generateMnemonic(wordCount = 24)
             val identity = deriveIdentity(mnemonic)
             store.saveIdentity(identity)
             Result.success(identity)
@@ -24,7 +37,7 @@ class IdentityManager(private val store: IdentityStore) {
         return try {
             val words = Bip39Helper.parseWords(mnemonic)
             require(Bip39Helper.isValidWordCount(words.size)) { "Mnemonic must be 12, 15, 18, 21 or 24 words" }
-            Bip39Helper.validateMnemonic(words) // throws if invalid checksum/word
+            Bip39Helper.validateMnemonic(words)
             val identity = deriveIdentity(words.joinToString(" "))
             store.saveIdentity(identity)
             Result.success(identity)

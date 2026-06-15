@@ -12,13 +12,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -33,11 +33,10 @@ fun VerifyMnemonicScreen(
     onVerified: () -> Unit,
     onBack: () -> Unit
 ) {
-    var selected by remember { mutableStateOf(listOf<String>()) }
-    var error by remember { mutableStateOf("") }
     val context = LocalContext.current
-
-    val shuffled = remember(words) { words.shuffled() }
+    val checks = remember(words) { generateChecks(words) }
+    var selections by remember { mutableStateOf(emptyMap<Int, String>()) }
+    var error by remember { mutableStateOf("") }
 
     Column(
         modifier = Modifier
@@ -52,19 +51,43 @@ fun VerifyMnemonicScreen(
             modifier = Modifier.fillMaxWidth()
         )
         Text(
-            text = stringResource(R.string.verify_seed_subtitle),
+            text = "Tap the correct word for each highlighted position from your backup.",
             style = MaterialTheme.typography.bodyLarge,
             textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth()
         )
 
-        OutlinedCard(modifier = Modifier.fillMaxWidth()) {
-            Column(modifier = Modifier.padding(16.dp)) {
+        checks.forEach { (index, candidates) ->
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 Text(
-                    text = if (selected.isEmpty()) "Tap words below" else selected.joinToString(" "),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = if (selected.isEmpty()) MaterialTheme.colorScheme.outline else MaterialTheme.colorScheme.onSurface
+                    text = "Word #${index + 1}",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary
                 )
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    candidates.forEach { word ->
+                        val selected = selections[index] == word
+                        OutlinedButton(
+                            onClick = {
+                                error = ""
+                                selections = selections + (index to word)
+                            }
+                        ) {
+                            Text(
+                                word,
+                                color = if (selected) MaterialTheme.colorScheme.primary
+                                else MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                    }
+                }
             }
         }
 
@@ -76,50 +99,43 @@ fun VerifyMnemonicScreen(
             )
         }
 
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            shuffled.forEach { word ->
-                val alreadySelected = selected.contains(word)
-                Button(
-                    onClick = {
-                        if (alreadySelected) return@Button
-                        error = ""
-                        selected = selected + word
-                    },
-                    enabled = !alreadySelected
-                ) {
-                    Text(word)
-                }
-            }
-        }
-
         Spacer(modifier = Modifier.height(16.dp))
 
+        val allAnswered = checks.keys.all { selections.containsKey(it) }
         Button(
             onClick = {
-                if (selected == words) {
+                val correct = checks.all { (index, _) -> selections[index] == words[index] }
+                if (correct) {
                     onVerified()
                 } else {
                     error = context.resources.getString(R.string.verification_failed)
-                    selected = emptyList()
+                    selections = emptyMap()
                 }
             },
             modifier = Modifier.fillMaxWidth(),
-            enabled = selected.size == words.size
+            enabled = allAnswered
         ) {
             Text(stringResource(R.string.confirm))
         }
         OutlinedButton(
             onClick = {
-                selected = emptyList()
+                selections = emptyMap()
                 onBack()
             },
             modifier = Modifier.fillMaxWidth()
         ) {
             Text(stringResource(R.string.back))
         }
+    }
+}
+
+private fun generateChecks(words: List<String>): Map<Int, List<String>> {
+    val random = java.util.Random()
+    val indices = words.indices.shuffled(random).take(3).sorted()
+    return indices.associate { index ->
+        val correct = words[index]
+        val distractors = words.filterIndexed { i, _ -> i != index }.shuffled(random).take(3)
+        val candidates = (distractors + correct).shuffled(random)
+        index to candidates
     }
 }

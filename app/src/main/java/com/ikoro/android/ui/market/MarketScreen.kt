@@ -36,12 +36,21 @@ fun MarketScreen() {
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            ScrollableTabRow(selectedTabIndex = selected) {
+            ScrollableTabRow(
+                selectedTabIndex = selected,
+                edgePadding = 0.dp
+            ) {
                 tabs.forEachIndexed { index, titleRes ->
                     Tab(
                         selected = selected == index,
                         onClick = { selected = index },
-                        text = { Text(stringResource(titleRes)) }
+                        text = {
+                            Text(
+                                text = stringResource(titleRes),
+                                maxLines = 1,
+                                softWrap = false
+                            )
+                        }
                     )
                 }
             }

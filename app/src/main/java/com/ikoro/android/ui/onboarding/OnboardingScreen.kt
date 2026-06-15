@@ -59,6 +59,8 @@ private fun WelcomeScreen(onCreate: () -> Unit, onRestore: () -> Unit) {
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        WelcomeAnimation()
+        Spacer(modifier = Modifier.height(24.dp))
         Text(
             text = stringResource(R.string.app_name),
             style = MaterialTheme.typography.displayLarge,

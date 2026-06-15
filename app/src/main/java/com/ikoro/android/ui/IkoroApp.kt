@@ -14,7 +14,14 @@ import com.ikoro.android.ui.main.MainShell
 
 @Composable
 fun IkoroApp(identityManager: IdentityManager) {
-    var hasIdentity by remember { mutableStateOf(identityManager.hasIdentity()) }
+    var ready by remember { mutableStateOf(false) }
+    var hasIdentity by remember { mutableStateOf(false) }
+
+    if (!ready) {
+        identityManager.resetIfCorrupt()
+        hasIdentity = identityManager.hasValidIdentity()
+        ready = true
+    }
 
     if (!hasIdentity) {
         OnboardingScreen(
