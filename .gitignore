@@ -17,3 +17,7 @@
 # Built APKs
 *.apk
 !app/src/main/**/*.apk
+
+# Build outputs
+app/build/
+*.log

@@ -11,5 +11,6 @@ data class ChatContact(
     val displayName: String,
     val npub: String? = null,
     val serverUri: String? = null,
-    val isGroup: Boolean = false
+    val isGroup: Boolean = false,
+    val isPinned: Boolean = false
 )

@@ -9,8 +9,11 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface ContactDao {
-    @Query("SELECT * FROM contacts ORDER BY displayName ASC")
+    @Query("SELECT * FROM contacts ORDER BY isPinned DESC, displayName ASC")
     fun allContacts(): Flow<List<ChatContact>>
+
+    @Query("SELECT * FROM contacts ORDER BY isPinned DESC, displayName ASC")
+    suspend fun allContactsOnce(): List<ChatContact>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(contact: ChatContact)

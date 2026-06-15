@@ -29,10 +29,16 @@
     <string name="copy">Copy</string>
     <string name="show_qr">Show QR</string>
     <string name="close">Close</string>
-
     <string name="p2p_tab">P2P</string>
     <string name="airtime_tab">Airtime</string>
     <string name="tickets_tab">Tickets</string>
     <string name="savings_tab">Savings</string>
     <string name="land_tab">Land</string>
+    <string name="agabra_contact_name">Agbara (Ikoro Support)</string>
+    <string name="agabra_welcome">Hi — I\'m Agbara, your Ikoro support contact. This channel is private and tied only to you.</string>
+    <string name="new_contact">New contact</string>
+    <string name="enter_npub">Enter npub or connection link</string>
+    <string name="add">Add</string>
+    <string name="empty_chat_title">No messages yet</string>
+    <string name="empty_chat_body">Start a chat or wait for an invitation.</string>
 </resources>
