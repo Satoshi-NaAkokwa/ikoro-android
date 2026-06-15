@@ -1,0 +1,65 @@
+name: Build Ikoro APK
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Cache Gradle packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Build debug APK
+        env:
+          BREEZ_API_KEY: ${{ secrets.BREEZ_API_KEY }}
+        run: ./gradlew assembleDebug -PbreezApiKey="$BREEZ_API_KEY"
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: ikoro-debug-apk
+          path: app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Decode keystore
+        if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
+        run: |
+          echo "${{ secrets.IKORO_KEYSTORE_BASE64 }}" | base64 -d > app/ikoro-release.keystore
+
+      - name: Build release APK
+        if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
+        env:
+          IKORO_KEYSTORE_PASSWORD: ${{ secrets.IKORO_KEYSTORE_PASSWORD }}
+          IKORO_KEY_PASSWORD: ${{ secrets.IKORO_KEY_PASSWORD }}
+          BREEZ_API_KEY: ${{ secrets.BREEZ_API_KEY }}
+        run: ./gradlew assembleRelease -PbreezApiKey="$BREEZ_API_KEY"
+
+      - name: Upload release APK
+        if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
+        uses: actions/upload-artifact@v4
+        with:
+          name: ikoro-release-apk
+          path: app/build/outputs/apk/release/app-release.apk
