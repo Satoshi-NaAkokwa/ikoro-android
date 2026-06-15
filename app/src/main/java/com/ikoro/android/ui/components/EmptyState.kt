@@ -30,19 +30,23 @@ fun EmptyState(
     actionLabel: String? = null,
     onAction: () -> Unit = {}
 ) {
-    val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(animationRes))
+    val composition = if (animationRes != 0) {
+        rememberLottieComposition(LottieCompositionSpec.RawRes(animationRes)).value
+    } else null
 
     Column(
         modifier = modifier.fillMaxSize(),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        LottieAnimation(
-            composition = composition,
-            iterations = LottieConstants.IterateForever,
-            modifier = Modifier.size(180.dp)
-        )
-        Spacer(modifier = Modifier.height(16.dp))
+        if (composition != null) {
+            LottieAnimation(
+                composition = composition,
+                iterations = LottieConstants.IterateForever,
+                modifier = Modifier.size(180.dp)
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+        }
         Text(
             text = title,
             style = MaterialTheme.typography.titleLarge,

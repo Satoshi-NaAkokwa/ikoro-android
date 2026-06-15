@@ -22,7 +22,9 @@ fun ChatScreen() {
         ChatDetailScreen(
             chatId = contact.id,
             title = contact.displayName,
-            chatManager = chatManager
+            contactNpub = contact.npub,
+            chatManager = chatManager,
+            onStartCall = { /* TODO: open LiveKit call for this contact */ }
         )
         // User can return via bottom nav.
     } ?: run {

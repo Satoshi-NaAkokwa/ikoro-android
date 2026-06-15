@@ -16,6 +16,7 @@ import com.ikoro.android.ui.onboarding.OnboardingScreen
 import com.ikoro.android.ui.main.MainShell
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import timber.log.Timber
 
 @Composable
 fun IkoroApp(identityManager: IdentityManager) {
@@ -31,8 +32,12 @@ fun IkoroApp(identityManager: IdentityManager) {
 
     LaunchedEffect(hasIdentity) {
         if (hasIdentity) {
-            ServiceLocator.walletManager().initialize()
             withContext(Dispatchers.IO) {
+                try {
+                    ServiceLocator.walletManager().initialize()
+                } catch (e: Exception) {
+                    Timber.e(e, "WalletManager init failed")
+                }
                 ServiceLocator.chatManager(context).initialize(
                     serverUri = com.ikoro.android.BuildConfig.SMP_SERVER_URI,
                     profileName = "Ikoro user"

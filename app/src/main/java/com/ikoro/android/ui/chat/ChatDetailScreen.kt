@@ -16,6 +16,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.Call
+import androidx.compose.material.icons.filled.QrCode
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -34,11 +36,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.ikoro.android.data.model.ChatMessage
 import com.ikoro.android.domain.chat.ChatManager
-import com.ikoro.android.ui.components.EmptyAnimations
 import com.ikoro.android.ui.components.EmptyState
+import com.ikoro.android.ui.components.QrShareSheet
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -46,13 +49,32 @@ import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ChatDetailScreen(chatId: String, title: String = "Chat", chatManager: ChatManager) {
+fun ChatDetailScreen(
+    chatId: String,
+    title: String = "Chat",
+    contactNpub: String? = null,
+    chatManager: ChatManager,
+    onStartCall: () -> Unit = {}
+) {
     val messages by chatManager.messages(chatId).collectAsState(initial = emptyList())
     var draft by remember { mutableStateOf("") }
+    var showQr by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text(title) }) }
+        topBar = {
+            TopAppBar(
+                title = { Text(title) },
+                actions = {
+                    IconButton(onClick = { showQr = true }) {
+                        Icon(Icons.Default.QrCode, contentDescription = "Show contact QR")
+                    }
+                    IconButton(onClick = onStartCall) {
+                        Icon(Icons.Default.Call, contentDescription = "Start call")
+                    }
+                }
+            )
+        }
     ) { padding ->
         Column(
             modifier = Modifier
@@ -64,7 +86,7 @@ fun ChatDetailScreen(chatId: String, title: String = "Chat", chatManager: ChatMa
                 EmptyState(
                     title = "No messages yet",
                     subtitle = "Start the conversation below.",
-                    animationRes = EmptyAnimations.chat
+                    animationRes = 0
                 )
             } else {
                 LazyColumn(
@@ -101,18 +123,26 @@ fun ChatDetailScreen(chatId: String, title: String = "Chat", chatManager: ChatMa
             }
         }
     }
+
+    if (showQr) {
+        QrShareSheet(
+            title = "$title connection",
+            value = contactNpub ?: "Contact not shareable yet",
+            onDismiss = { showQr = false }
+        )
+    }
 }
 
 @Composable
 private fun MessageBubble(msg: ChatMessage) {
     val isMe = !msg.isIncoming
     val bubbleColor = if (isMe) {
-        MaterialTheme.colorScheme.primary
+        MaterialTheme.colorScheme.primaryContainer
     } else {
         MaterialTheme.colorScheme.surfaceVariant
     }
     val textColor = if (isMe) {
-        MaterialTheme.colorScheme.onPrimary
+        Color.White
     } else {
         MaterialTheme.colorScheme.onSurfaceVariant
     }

@@ -18,6 +18,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.QrCode
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -34,9 +35,11 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -48,6 +51,7 @@ import androidx.fragment.app.FragmentActivity
 import com.ikoro.android.R
 import com.ikoro.android.data.model.Identity
 import com.ikoro.android.domain.identity.IdentityManager
+import com.ikoro.android.ui.components.QrShareSheet
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -58,11 +62,21 @@ fun IdentityScreen(identityManager: IdentityManager) {
     }
     val identity = identityState.value
     val showSeedDialog = remember { mutableStateOf(false) }
+    var qrValue by remember { mutableStateOf("") }
+    var qrTitle by remember { mutableStateOf("") }
 
     if (showSeedDialog.value && identity != null) {
         SeedRevealDialog(
             seed = identity.mnemonic,
             onDismiss = { showSeedDialog.value = false }
+        )
+    }
+
+    if (qrValue.isNotBlank()) {
+        QrShareSheet(
+            title = qrTitle,
+            value = qrValue,
+            onDismiss = { qrValue = "" }
         )
     }
 
@@ -97,17 +111,29 @@ fun IdentityScreen(identityManager: IdentityManager) {
                 IdentityRow(
                     label = stringResource(R.string.nostr_label),
                     value = identity.nostrNpub,
-                    onCopy = { copyToClipboard(context, identity.nostrNpub) }
+                    onCopy = { copyToClipboard(context, identity.nostrNpub) },
+                    onQr = {
+                        qrTitle = "Nostr npub"
+                        qrValue = identity.nostrNpub
+                    }
                 )
                 IdentityRow(
                     label = stringResource(R.string.evm_label),
                     value = identity.evmAddress,
-                    onCopy = { copyToClipboard(context, identity.evmAddress) }
+                    onCopy = { copyToClipboard(context, identity.evmAddress) },
+                    onQr = {
+                        qrTitle = "EVM address"
+                        qrValue = identity.evmAddress
+                    }
                 )
                 IdentityRow(
                     label = stringResource(R.string.rootstock_label),
                     value = identity.rootstockAddress,
-                    onCopy = { copyToClipboard(context, identity.rootstockAddress) }
+                    onCopy = { copyToClipboard(context, identity.rootstockAddress) },
+                    onQr = {
+                        qrTitle = "Rootstock address"
+                        qrValue = identity.rootstockAddress
+                    }
                 )
                 IdentityRow(
                     label = stringResource(R.string.seed_fingerprint_label),
@@ -175,7 +201,12 @@ private fun SeedRevealDialog(seed: String, onDismiss: () -> Unit) {
 }
 
 @Composable
-private fun IdentityRow(label: String, value: String, onCopy: () -> Unit) {
+private fun IdentityRow(
+    label: String,
+    value: String,
+    onCopy: () -> Unit,
+    onQr: (() -> Unit)? = null
+) {
     Card(
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant
@@ -202,11 +233,21 @@ private fun IdentityRow(label: String, value: String, onCopy: () -> Unit) {
                     overflow = TextOverflow.Ellipsis
                 )
             }
-            IconButton(onClick = onCopy) {
-                Icon(
-                    imageVector = Icons.Default.ContentCopy,
-                    contentDescription = stringResource(R.string.copy)
-                )
+            Row {
+                onQr?.let { qr ->
+                    IconButton(onClick = qr) {
+                        Icon(
+                            imageVector = Icons.Default.QrCode,
+                            contentDescription = "Show QR"
+                        )
+                    }
+                }
+                IconButton(onClick = onCopy) {
+                    Icon(
+                        imageVector = Icons.Default.ContentCopy,
+                        contentDescription = stringResource(R.string.copy)
+                    )
+                }
             }
         }
     }

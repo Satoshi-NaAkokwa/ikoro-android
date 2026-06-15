@@ -118,6 +118,9 @@ dependencies {
     // Nostr SDK for cross-platform secure DMs to Agbara
     implementation("org.rust-nostr:nostr-sdk-kmp-android:0.44.3")
 
+    // QR codes (generate + scan)
+    implementation("com.google.zxing:core:3.5.3")
+
     implementation(platform("androidx.compose:compose-bom:2024.02.00"))
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-graphics")
