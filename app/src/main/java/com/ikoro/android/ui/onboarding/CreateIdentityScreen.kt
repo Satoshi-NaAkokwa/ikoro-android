@@ -24,6 +24,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -51,39 +52,158 @@ fun CreateIdentityScreen(
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
-    var identity by remember { mutableStateOf<Identity?>(null) }
-    var showVerification by remember { mutableStateOf(false) }
-    var confirmed by remember { mutableStateOf(false) }
+    var state by remember { mutableStateOf<CreateState>(CreateState.Ready) }
 
-    if (identity == null) {
-        val result = remember { identityManager.createIdentity() }
-        identity = result.getOrNull()
-    }
-
-    val currentIdentity = identity
-    if (currentIdentity == null) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(24.dp),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(stringResource(R.string.restore_identity), style = MaterialTheme.typography.titleLarge)
-            Spacer(modifier = Modifier.height(16.dp))
-            OutlinedButton(onClick = onBack) { Text(stringResource(R.string.back)) }
-        }
-        return
-    }
-
-    if (showVerification) {
-        VerifyMnemonicScreen(
-            words = currentIdentity.mnemonic.split(" "),
-            onVerified = { onDone() },
-            onBack = { showVerification = false }
+    when (val s = state) {
+        is CreateState.Ready -> GenerateStep(
+            onGenerate = {
+                state = CreateState.Generating
+            },
+            onBack = onBack
         )
-        return
+        is CreateState.Generating -> {
+            val result = remember { identityManager.createIdentity() }
+            if (result.isSuccess) {
+                state = CreateState.DisplaySeed(result.getOrThrow())
+            } else {
+                val error = result.exceptionOrNull()?.localizedMessage ?: "Unknown error"
+                state = CreateState.Error(error)
+            }
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                CircularProgressIndicator()
+                Spacer(modifier = Modifier.height(12.dp))
+                Text("Creating your identity…")
+            }
+        }
+        is CreateState.Error -> ErrorStep(
+            message = s.message,
+            onRetry = { state = CreateState.Ready },
+            onRestore = { state = CreateState.GoRestore }
+        )
+        is CreateState.GoRestore -> RestoreIdentityScreen(
+            identityManager = identityManager,
+            onDone = onDone,
+            onBack = { state = CreateState.Ready }
+        )
+        is CreateState.DisplaySeed -> SeedStep(
+            identity = s.identity,
+            identityManager = identityManager,
+            onVerified = { state = CreateState.Verifying(s.identity) },
+            onBack = onBack
+        )
+        is CreateState.Verifying -> VerifyMnemonicScreen(
+            words = s.identity.mnemonic.split(" "),
+            onVerified = onDone,
+            onBack = { state = CreateState.DisplaySeed(s.identity) }
+        )
     }
+}
+
+private sealed class CreateState {
+    object Ready : CreateState()
+    object Generating : CreateState()
+    data class DisplaySeed(val identity: Identity) : CreateState()
+    object GoRestore : CreateState()
+    data class Error(val message: String) : CreateState()
+    data class Verifying(val identity: Identity) : CreateState()
+}
+
+@Composable
+private fun GenerateStep(onGenerate: () -> Unit, onBack: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = "Create your Ikoro identity",
+            style = MaterialTheme.typography.headlineSmall,
+            textAlign = TextAlign.Center
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(
+            text = "Ikoro will generate a single 24-word recovery phrase. That phrase secures your chat, wallet and identity across all chains.",
+            style = MaterialTheme.typography.bodyLarge,
+            textAlign = TextAlign.Center,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(modifier = Modifier.height(32.dp))
+        Button(
+            onClick = onGenerate,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Generate secure identity")
+        }
+        Spacer(modifier = Modifier.height(12.dp))
+        OutlinedButton(
+            onClick = onBack,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(stringResource(R.string.back))
+        }
+    }
+}
+
+@Composable
+private fun ErrorStep(message: String, onRetry: () -> Unit, onRestore: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Icon(
+            imageVector = Icons.Default.Warning,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.error,
+            modifier = Modifier.padding(bottom = 16.dp)
+        )
+        Text(
+            text = "Could not create identity",
+            style = MaterialTheme.typography.titleLarge,
+            color = MaterialTheme.colorScheme.error,
+            textAlign = TextAlign.Center
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = message,
+            style = MaterialTheme.typography.bodyMedium,
+            textAlign = TextAlign.Center
+        )
+        Spacer(modifier = Modifier.height(32.dp))
+        Button(
+            onClick = onRetry,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Try again")
+        }
+        Spacer(modifier = Modifier.height(12.dp))
+        OutlinedButton(
+            onClick = onRestore,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Restore from seed instead")
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun SeedStep(
+    identity: Identity,
+    identityManager: IdentityManager,
+    onVerified: () -> Unit,
+    onBack: () -> Unit
+) {
+    val context = LocalContext.current
+    var confirmed by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -120,7 +240,7 @@ fun CreateIdentityScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    currentIdentity.mnemonic.split(" ").forEachIndexed { index, word ->
+                    identity.mnemonic.split(" ").forEachIndexed { index, word ->
                         WordChip(index = index + 1, word = word)
                     }
                 }
@@ -130,7 +250,7 @@ fun CreateIdentityScreen(
         OutlinedButton(
             onClick = {
                 val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                clipboard.setPrimaryClip(ClipData.newPlainText("Ikoro seed", currentIdentity.mnemonic))
+                clipboard.setPrimaryClip(ClipData.newPlainText("Ikoro seed", identity.mnemonic))
                 Toast.makeText(context, "Seed copied — clear clipboard after backup", Toast.LENGTH_LONG).show()
             },
             modifier = Modifier.fillMaxWidth()
@@ -153,7 +273,7 @@ fun CreateIdentityScreen(
         }
 
         Button(
-            onClick = { showVerification = true },
+            onClick = onVerified,
             modifier = Modifier.fillMaxWidth(),
             enabled = confirmed
         ) {
