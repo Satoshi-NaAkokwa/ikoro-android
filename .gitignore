@@ -1,7 +1,19 @@
-local.properties
+# Generated files
+*.iml
+.gradle
+/local.properties
+/.idea
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+
+# Keystore secrets
 *.keystore
 *.jks
-.gradle/
-build/
-captures/
-.idea/
+*.keystore.base64
+
+# Built APKs
+*.apk
+!app/src/main/**/*.apk
