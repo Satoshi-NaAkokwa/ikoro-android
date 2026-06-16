@@ -10,13 +10,17 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-        maven { url = uri("https://repo1.maven.org/maven2") }
+        maven { url = uri("https://jitpack.io") }
         maven {
-            name = "GitHubPackages"
+            name = "GitHubPackagesTrustWallet"
             url = uri("https://maven.pkg.github.com/trustwallet/wallet-core")
             credentials {
                 username = providers.gradleProperty("gpr.user").orNull ?: System.getenv("GITHUB_USER")
                 password = providers.gradleProperty("gpr.key").orNull ?: System.getenv("GITHUB_TOKEN")
+            }
+            content {
+                includeGroup("com.trustwallet")
+                includeGroupByRegex("com\\.trustwallet\\..*")
             }
         }
     }

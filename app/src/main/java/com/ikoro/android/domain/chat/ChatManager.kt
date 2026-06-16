@@ -1,10 +1,14 @@
 package com.ikoro.android.domain.chat
 
+import android.content.Context
 import com.ikoro.android.data.local.ContactDao
 import com.ikoro.android.data.local.MessageDao
 import com.ikoro.android.data.model.ChatContact
 import com.ikoro.android.data.model.ChatMessage
+import com.ikoro.android.data.remote.NostrDmClient
 import com.ikoro.android.data.remote.SimplexBridge
+import com.ikoro.android.di.ServiceLocator
+import com.ikoro.android.domain.identity.IdentityManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -16,13 +20,31 @@ import timber.log.Timber
 import java.util.UUID
 
 private const val AGABRA_WELCOME = "Hi — I'm Agbara, your Ikoro support contact. This channel is private and tied only to you."
+private val DEFAULT_RELAYS = listOf(
+    "wss://relay.damus.io",
+    "wss://relay.primal.net",
+    "wss://nos.lol"
+)
 
 class ChatManager(
+    private val context: Context,
     private val bridge: SimplexBridge,
     private val messageDao: MessageDao,
     private val contactDao: ContactDao
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val identityManager: IdentityManager by lazy { ServiceLocator.identityManager(context) }
+
+    private var _nostrClient: NostrDmClient? = null
+    private val nostrClient: NostrDmClient?
+        get() {
+            if (_nostrClient == null) {
+                val nsec = identityManager.loadNsec() ?: return null
+                _nostrClient = NostrDmClient(nsec).apply { addRelays(DEFAULT_RELAYS) }
+                scope.launch { _nostrClient?.connect() }
+            }
+            return _nostrClient
+        }
 
     private val _contacts = MutableStateFlow<List<ChatContact>>(emptyList())
     val contacts: StateFlow<List<ChatContact>> = _contacts
@@ -36,15 +58,14 @@ class ChatManager(
                 _events.value = event
                 if (event.startsWith("invitation_accepted:")) {
                     val connReq = event.removePrefix("invitation_accepted:")
-                    scope.launch {
-                        addContact("New contact", "conn:$connReq")
-                    }
+                    scope.launch { addContact("New contact", "conn:$connReq") }
                 }
             }
         })
         scope.launch {
             contactDao.allContacts().collect { _contacts.value = it }
         }
+        scope.launch { pinAgabra() }
     }
 
     fun initialize(serverUri: String, profileName: String) {
@@ -89,6 +110,7 @@ class ChatManager(
     }
 
     suspend fun sendMessage(chatId: String, text: String) {
+        val contact = contactDao.getById(chatId) ?: return
         val message = ChatMessage(
             id = UUID.randomUUID().toString(),
             chatId = chatId,
@@ -98,7 +120,18 @@ class ChatManager(
             isIncoming = false
         )
         messageDao.insert(message)
-        bridge.sendMessage(chatId, text)
+
+        val npub = contact.npub
+        if (!npub.isNullOrBlank() && npub.startsWith("npub")) {
+            val client = nostrClient
+            if (client == null) {
+                Timber.w("Cannot send Nostr DM: no user nsec available")
+                return
+            }
+            client.sendPrivateMessage(npub, text)
+        } else {
+            bridge.sendMessage(chatId, text)
+        }
     }
 
     suspend fun receiveMessage(chatId: String, sender: String, text: String) {
@@ -118,5 +151,7 @@ class ChatManager(
 
     fun shutdown() {
         bridge.disconnect()
+        _nostrClient?.close()
+        _nostrClient = null
     }
 }

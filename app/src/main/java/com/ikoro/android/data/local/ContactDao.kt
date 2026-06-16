@@ -18,6 +18,9 @@ interface ContactDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(contact: ChatContact)
 
+    @Query("SELECT * FROM contacts WHERE id = :id LIMIT 1")
+    suspend fun getById(id: String): ChatContact?
+
     @Query("DELETE FROM contacts WHERE id = :id")
     suspend fun delete(id: String)
 }

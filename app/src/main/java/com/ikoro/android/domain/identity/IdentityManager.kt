@@ -56,6 +56,8 @@ class IdentityManager(private val store: IdentityStore) {
 
     fun loadMnemonic(): String? = store.loadIdentity()?.mnemonic
 
+    fun loadNsec(): String? = store.loadIdentity()?.nostrNsec
+
     fun clearIdentity() {
         store.clearIdentity()
     }

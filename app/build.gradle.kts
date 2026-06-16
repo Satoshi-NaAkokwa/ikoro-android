@@ -26,6 +26,16 @@ android {
             ?: project.findProperty("thirdweb_client_id") as? String
             ?: ""
         buildConfigField("String", "THIRDWEB_CLIENT_ID", "\"$thirdwebClientId\"")
+        val livekitUrl: String = project.findProperty("livekitUrl") as? String
+            ?: project.findProperty("livekit_url") as? String
+            ?: "wss://livekit.ugogbe.info"
+        buildConfigField("String", "LIVEKIT_URL", "\"$livekitUrl\"")
+
+        val livekitTokenEndpoint: String = project.findProperty("livekitTokenEndpoint") as? String
+            ?: project.findProperty("livekit_token_endpoint") as? String
+            ?: "https://livekit.ugogbe.info/token"
+        buildConfigField("String", "LIVEKIT_TOKEN_ENDPOINT", "\"$livekitTokenEndpoint\"")
+
         val agabraNpub: String = project.findProperty("agabraNpub") as? String
             ?: project.findProperty("agabra_npub") as? String
             ?: "npub13ufag8855wayvsf0kzu9ml3dh8yc55pp0z89fd3pnswdxp28gfsqch86wq"
@@ -151,6 +161,9 @@ dependencies {
 
     // thirdweb Android SDK: EVM RPC + contracts + in-app wallet helpers
     implementation("com.thirdweb:connect:0.0.1")
+
+    // LiveKit calls
+    implementation("io.livekit:livekit-android:2.11.1")
 
     // Logging
     implementation("com.jakewharton.timber:timber:5.0.1")

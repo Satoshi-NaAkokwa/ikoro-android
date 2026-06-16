@@ -64,6 +64,7 @@ object ServiceLocator {
     fun chatManager(context: Context): ChatManager {
         return chatManager ?: synchronized(this) {
             chatManager ?: ChatManager(
+                context,
                 SimplexBridge(),
                 database(context).messageDao(),
                 database(context).contactDao()
