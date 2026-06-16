@@ -22,9 +22,7 @@ android {
             useSupportLibrary = true
         }
 
-        val thirdwebClientId: String = project.findProperty("thirdwebClientId") as? String
-            ?: project.findProperty("thirdweb_client_id") as? String
-            ?: ""
+        val thirdwebClientId: String = "902af4d9fc7f1f98d7d5e820d7896a4e"
         buildConfigField("String", "THIRDWEB_CLIENT_ID", "\"$thirdwebClientId\"")
         val livekitUrl: String = project.findProperty("livekitUrl") as? String
             ?: project.findProperty("livekit_url") as? String
