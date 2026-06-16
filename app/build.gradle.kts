@@ -31,7 +31,7 @@ android {
 
         val livekitTokenEndpoint: String = project.findProperty("livekitTokenEndpoint") as? String
             ?: project.findProperty("livekit_token_endpoint") as? String
-            ?: "https://livekit.ugogbe.info/token"
+            ?: "https://livekit.ugogbe.info/livekit/token"
         buildConfigField("String", "LIVEKIT_TOKEN_ENDPOINT", "\"$livekitTokenEndpoint\"")
 
         val agabraNpub: String = project.findProperty("agabraNpub") as? String
