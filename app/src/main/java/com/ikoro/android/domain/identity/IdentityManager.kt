@@ -2,7 +2,12 @@ package com.ikoro.android.domain.identity
 
 import com.ikoro.android.data.local.IdentityStore
 import com.ikoro.android.data.model.Identity
+import rust.nostr.sdk.Keys
+import rust.nostr.sdk.SecretKey
 import timber.log.Timber
+import wallet.core.jni.CoinType
+import wallet.core.jni.HDWallet
+import java.security.MessageDigest
 
 class IdentityManager(private val store: IdentityStore) {
 
@@ -23,7 +28,7 @@ class IdentityManager(private val store: IdentityStore) {
 
     fun createIdentity(): Result<Identity> {
         return try {
-            val mnemonic = Bip39Helper.generateMnemonic(wordCount = 24)
+            val mnemonic = HDWallet(256, "").mnemonic()
             val identity = deriveIdentity(mnemonic)
             store.saveIdentity(identity)
             Result.success(identity)
@@ -35,10 +40,10 @@ class IdentityManager(private val store: IdentityStore) {
 
     fun restoreIdentity(mnemonic: String): Result<Identity> {
         return try {
-            val words = Bip39Helper.parseWords(mnemonic)
-            require(Bip39Helper.isValidWordCount(words.size)) { "Mnemonic must be 12, 15, 18, 21 or 24 words" }
-            Bip39Helper.validateMnemonic(words)
-            val identity = deriveIdentity(words.joinToString(" "))
+            val words = mnemonic.trim().split(Regex("\\s+"))
+            require(words.size in listOf(12, 15, 18, 21, 24)) { "Mnemonic must be 12, 15, 18, 21 or 24 words" }
+            HDWallet(mnemonic, "")
+            val identity = deriveIdentity(mnemonic)
             store.saveIdentity(identity)
             Result.success(identity)
         } catch (e: Exception) {
@@ -49,40 +54,34 @@ class IdentityManager(private val store: IdentityStore) {
 
     fun loadExistingIdentity(): Identity? = store.loadIdentity()
 
-    fun deriveEvmKeyPair(): Result<org.web3j.crypto.ECKeyPair> {
-        return try {
-            val identity = store.loadIdentity() ?: return Result.failure(IllegalStateException("No identity"))
-            val seed = Bip39Helper.mnemonicToSeed(identity.mnemonic)
-            val pair = KeyDerivation.deriveEthereumKeyPair(seed)
-            Result.success(pair)
-        } catch (e: Exception) {
-            Timber.e(e, "deriveEvmKeyPair failed")
-            Result.failure(e)
-        }
-    }
+    fun loadMnemonic(): String? = store.loadIdentity()?.mnemonic
 
     fun clearIdentity() {
         store.clearIdentity()
     }
 
     private fun deriveIdentity(mnemonic: String): Identity {
-        val words = Bip39Helper.parseWords(mnemonic)
-        val seed = Bip39Helper.validateMnemonic(words)
-        val evmAddress = "0x" + KeyDerivation.deriveEvmAddress(seed)
-        val rootstockAddress = "0x" + KeyDerivation.deriveRootstockAddress(seed)
-        val nostr = KeyDerivation.deriveNostrKeyPair(seed)
-        val npub = Bech32Nostr.encodeNpub(nostr.publicKey)
-        val nsec = Bech32Nostr.encodeNsec(nostr.privateKey)
-        val fingerprint = KeyDerivation.seedFingerprint(seed)
+        val wallet = HDWallet(mnemonic, "")
+        val evmAddress = wallet.getAddressForCoin(CoinType.ETHEREUM)
+        val rootstockAddress = wallet.getAddressForCoin(CoinType.ROOTSTOCK)
+        val nostr = NostrDerivation.derive(mnemonic)
+        val fingerprint = seedFingerprint(wallet.seed())
         val did = "did:ethr:$evmAddress"
         return Identity(
             mnemonic = mnemonic,
             seedFingerprint = fingerprint,
-            nostrNpub = npub,
-            nostrNsec = nsec,
+            nostrNpub = nostr.npub,
+            nostrNsec = nostr.nsec,
             evmAddress = evmAddress,
             rootstockAddress = rootstockAddress,
             did = did,
         )
+    }
+
+    private fun seedFingerprint(seed: ByteArray): String {
+        return MessageDigest.getInstance("SHA-256")
+            .digest(seed)
+            .copyOfRange(0, 4)
+            .joinToString("") { "%02x".format(it) }
     }
 }

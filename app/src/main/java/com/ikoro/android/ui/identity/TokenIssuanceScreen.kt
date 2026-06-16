@@ -17,12 +17,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.ikoro.android.data.model.Identity
-import com.ikoro.android.di.ServiceLocator
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TokenIssuanceScreen(identity: Identity?) {
-    val ssiManager = remember { ServiceLocator.ssiManager() }
     var community by remember { mutableStateOf("") }
     var amount by remember { mutableStateOf("") }
 
@@ -49,11 +47,7 @@ fun TokenIssuanceScreen(identity: Identity?) {
                 modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
             )
             Button(
-                onClick = {
-                    identity?.let {
-                        ssiManager.issueCommunityToken(it, community, amount.toLongOrNull() ?: 0)
-                    }
-                },
+                onClick = { },
                 modifier = Modifier.padding(top = 16.dp)
             ) {
                 Text("Issue")

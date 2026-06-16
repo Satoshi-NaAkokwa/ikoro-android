@@ -44,6 +44,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalContext
 import com.ikoro.android.R
 import com.ikoro.android.data.model.Asset
 import com.ikoro.android.data.model.Identity
@@ -55,7 +56,8 @@ import com.ikoro.android.ui.components.EmptyState
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WalletScreen(identityManager: IdentityManager) {
-    val walletManager = remember { ServiceLocator.walletManager() }
+    val context = LocalContext.current
+    val walletManager = remember { ServiceLocator.walletManager(context) }
     val identityState: State<Identity?> = produceState<Identity?>(null) {
         value = identityManager.loadExistingIdentity()
     }
@@ -64,10 +66,8 @@ fun WalletScreen(identityManager: IdentityManager) {
     val assets = remember { mutableStateOf(listOf<Asset>()) }
     var sendAsset by remember { mutableStateOf<Asset?>(null) }
 
-    LaunchedEffect(identity?.evmAddress) {
-        identity?.evmAddress?.let { address ->
-            assets.value = walletManager.loadAssets(address)
-        }
+    LaunchedEffect(Unit) {
+        assets.value = walletManager.loadAssets()
     }
 
     Scaffold(
@@ -118,7 +118,6 @@ fun WalletScreen(identityManager: IdentityManager) {
         SendSheet(
             asset = asset,
             walletManager = walletManager,
-            identityManager = identityManager,
             onDismiss = { sendAsset = null }
         )
     }

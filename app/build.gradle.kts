@@ -14,26 +14,18 @@ android {
         applicationId = "com.ikoro.android"
         minSdk = 24
         targetSdk = 34
-        versionCode = 6
-        versionName = "1.1.0"
+        versionCode = 7
+        versionName = "1.2.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
             useSupportLibrary = true
         }
 
-        val breezApiKey: String = project.findProperty("breezApiKey") as? String
-            ?: project.findProperty("breez_api_key") as? String
+        val thirdwebClientId: String = project.findProperty("thirdwebClientId") as? String
+            ?: project.findProperty("thirdweb_client_id") as? String
             ?: ""
-        buildConfigField("String", "BREEZ_API_KEY", "\"$breezApiKey\"")
-
-        val rootstockRpc: String = project.findProperty("rootstockRpc") as? String
-            ?: project.findProperty("rootstock_rpc") as? String
-            ?: "https://public-node.rsk.co"
-        buildConfigField("String", "ROOTSTOCK_RPC", "\"$rootstockRpc\"")
-
-        val etherscanApiKey: String = project.findProperty("etherscanApiKey") as? String ?: ""
-        buildConfigField("String", "ETHERSCAN_API_KEY", "\"$etherscanApiKey\"")
+        buildConfigField("String", "THIRDWEB_CLIENT_ID", "\"$thirdwebClientId\"")
 
         val agabraNpub: String = project.findProperty("agabraNpub") as? String
             ?: "npub13ufag8855wayvsf0kzu9ml3dh8yc55pp0z89fd3pnswdxp28gfsqch86wq"
@@ -105,9 +97,15 @@ android {
 
 dependencies {
     // Phase 1: Stable Shell only.
+    configurations.all {
+        resolutionStrategy {
+            force("androidx.core:core-ktx:1.12.0")
+            force("androidx.core:core:1.12.0")
+        }
+    }
+
     implementation("androidx.core:core-ktx:1.12.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
-    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
     implementation("androidx.activity:activity-compose:1.8.2")
     implementation("androidx.appcompat:appcompat:1.6.1")
     implementation("androidx.biometric:biometric:1.1.0")
@@ -142,19 +140,11 @@ dependencies {
     implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
     implementation("com.google.zxing:core:3.5.3")
 
-    // Bitcoin / Lightning (Breez Liquid)
-    implementation("breez_sdk_liquid:bindings-android:0.12.3-dev1") {
-        exclude(group = "org.bouncycastle", module = "bcprov-jdk15to18")
-    }
+    // Trust Wallet Core: keys, signing, address derivation for BTC+EVM
+    implementation("com.trustwallet:wallet-core:4.2.10")
 
-    // Bitcoin / BIP-39
-    implementation("org.bitcoinj:bitcoinj-core:0.17-alpha1") {
-        exclude(group = "org.bouncycastle", module = "bcprov-jdk15to18")
-    }
-
-    // EVM (web3j)
-    implementation("org.web3j:core:4.10.3")
-    implementation("org.web3j:contracts:4.10.3")
+    // thirdweb Android SDK: EVM RPC + contracts + in-app wallet helpers
+    implementation("com.thirdweb:connect:0.0.1")
 
     // Logging
     implementation("com.jakewharton.timber:timber:5.0.1")

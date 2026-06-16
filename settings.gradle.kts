@@ -11,7 +11,14 @@ dependencyResolutionManagement {
         google()
         mavenCentral()
         maven { url = uri("https://repo1.maven.org/maven2") }
-        maven { url = uri("https://mvn.breez.technology/releases") }
+        maven {
+            name = "GitHubPackages"
+            url = uri("https://maven.pkg.github.com/trustwallet/wallet-core")
+            credentials {
+                username = providers.gradleProperty("gpr.user").orNull ?: System.getenv("GITHUB_USER")
+                password = providers.gradleProperty("gpr.key").orNull ?: System.getenv("GITHUB_TOKEN")
+            }
+        }
     }
 }
 rootProject.name = "ikoro-android"

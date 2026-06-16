@@ -7,8 +7,6 @@ import com.ikoro.android.data.local.IdentityStore
 import com.ikoro.android.data.remote.SimplexBridge
 import com.ikoro.android.domain.chat.ChatManager
 import com.ikoro.android.domain.identity.IdentityManager
-import com.ikoro.android.domain.market.MarketManager
-import com.ikoro.android.domain.ssi.SsiManager
 import com.ikoro.android.domain.wallet.WalletManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -32,12 +30,6 @@ object ServiceLocator {
 
     @Volatile
     private var walletManager: WalletManager? = null
-
-    @Volatile
-    private var ssiManager: SsiManager? = null
-
-    @Volatile
-    private var marketManager: MarketManager? = null
 
     fun init(context: Context) {
         if (appContext != null) return
@@ -79,21 +71,9 @@ object ServiceLocator {
         }
     }
 
-    fun walletManager(): WalletManager {
+    fun walletManager(context: Context): WalletManager {
         return walletManager ?: synchronized(this) {
-            walletManager ?: WalletManager().also { walletManager = it }
-        }
-    }
-
-    fun ssiManager(): SsiManager {
-        return ssiManager ?: synchronized(this) {
-            ssiManager ?: SsiManager().also { ssiManager = it }
-        }
-    }
-
-    fun marketManager(): MarketManager {
-        return marketManager ?: synchronized(this) {
-            marketManager ?: MarketManager().also { marketManager = it }
+            walletManager ?: WalletManager(context).also { walletManager = it }
         }
     }
 }

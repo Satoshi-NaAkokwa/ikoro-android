@@ -23,17 +23,14 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.ikoro.android.data.model.Asset
-import com.ikoro.android.domain.identity.IdentityManager
 import com.ikoro.android.domain.wallet.WalletManager
 import kotlinx.coroutines.launch
-import org.web3j.crypto.Credentials
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SendSheet(
     asset: Asset,
     walletManager: WalletManager,
-    identityManager: IdentityManager,
     onDismiss: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
@@ -87,15 +84,8 @@ fun SendSheet(
                 onClick = {
                     scope.launch {
                         busy = true
-                        status = "Deriving key and signing..."
-                        val keyPair = identityManager.deriveEvmKeyPair()
-                        if (keyPair.isFailure) {
-                            status = "Error: ${keyPair.exceptionOrNull()?.message}"
-                            busy = false
-                            return@launch
-                        }
-                        val credentials = Credentials.create(keyPair.getOrThrow())
-                        val result = walletManager.send(asset.id, credentials, to, amount)
+                        status = "Signing with Trust Wallet Core..."
+                        val result = walletManager.send(asset.id, to, amount)
                         status = if (result.isSuccess) {
                             "Sent: ${result.getOrThrow()}"
                         } else {

@@ -34,7 +34,7 @@ fun IkoroApp(identityManager: IdentityManager) {
         if (hasIdentity) {
             withContext(Dispatchers.IO) {
                 try {
-                    ServiceLocator.walletManager().initialize()
+                    ServiceLocator.walletManager(context).initialize()
                 } catch (e: Exception) {
                     Timber.e(e, "WalletManager init failed")
                 }

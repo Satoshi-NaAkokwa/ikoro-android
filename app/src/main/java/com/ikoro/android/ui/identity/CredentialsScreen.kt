@@ -2,6 +2,7 @@ package com.ikoro.android.ui.identity
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -13,12 +14,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.ikoro.android.data.model.Identity
-import com.ikoro.android.di.ServiceLocator
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CredentialsScreen(identity: Identity?) {
-    val ssiManager = ServiceLocator.ssiManager()
     Scaffold(
         topBar = { TopAppBar(title = { Text("Credentials") }) }
     ) { padding ->
@@ -37,11 +36,10 @@ fun CredentialsScreen(identity: Identity?) {
                 modifier = Modifier.padding(vertical = 8.dp)
             )
             Button(
-                onClick = {
-                    identity?.let { ssiManager.issueSelfCredential(it) }
-                }
+                onClick = { },
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Issue Self-Credential")
+                Text("Request credential")
             }
         }
     }
