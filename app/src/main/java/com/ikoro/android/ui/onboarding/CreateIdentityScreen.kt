@@ -1,8 +1,10 @@
 package com.ikoro.android.ui.onboarding
 
+import android.app.Activity
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.view.WindowManager
 import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -30,6 +32,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -204,6 +207,14 @@ private fun SeedStep(
 ) {
     val context = LocalContext.current
     var confirmed by remember { mutableStateOf(false) }
+
+    DisposableEffect(Unit) {
+        val window = (context as? Activity)?.window
+        window?.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+        onDispose {
+            window?.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+        }
+    }
 
     Column(
         modifier = Modifier
