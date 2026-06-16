@@ -57,9 +57,9 @@ android {
     signingConfigs {
         create("release") {
             storeFile = file("ikoro-release.keystore")
-            storePassword = System.getenv("IKORO_KEYSTORE_PASSWORD") ?: "dummy-keystore-password"
+            storePassword = System.getenv("IKORO_KEYSTORE_PASSWORD") ?: "ikoro123"
             keyAlias = "ikoro"
-            keyPassword = System.getenv("IKORO_KEY_PASSWORD") ?: "dummy-key-password"
+            keyPassword = System.getenv("IKORO_KEY_PASSWORD") ?: "ikoro123"
         }
     }
 
