@@ -26,10 +26,16 @@ android {
             ?: project.findProperty("thirdweb_client_id") as? String
             ?: ""
         buildConfigField("String", "THIRDWEB_CLIENT_ID", "\"$thirdwebClientId\"")
-
         val agabraNpub: String = project.findProperty("agabraNpub") as? String
+            ?: project.findProperty("agabra_npub") as? String
             ?: "npub13ufag8855wayvsf0kzu9ml3dh8yc55pp0z89fd3pnswdxp28gfsqch86wq"
         buildConfigField("String", "AGABRA_NPUB", "\"$agabraNpub\"")
+
+        val marketplaceContractAddress: String = project.findProperty("marketplaceContractAddress") as? String ?: ""
+        buildConfigField("String", "MARKETPLACE_CONTRACT_ADDRESS", "\"$marketplaceContractAddress\"")
+
+        val escrowContractAddress: String = project.findProperty("escrowContractAddress") as? String ?: ""
+        buildConfigField("String", "ESCROW_CONTRACT_ADDRESS", "\"$escrowContractAddress\"")
 
         buildConfigField("String", "AGABRA_INVITE_ENDPOINT", "\"https://smp.ugogbe.info/agbara/invite\"")
         buildConfigField("String", "SMP_SERVER_URI", "\"smp://kG8TDZb0A1r1MCy5do5eVfQTInWPliSI7XOjJObSy1E=:ikoro-smp-pass-2026@smp.ugogbe.info:5223,443\"")
