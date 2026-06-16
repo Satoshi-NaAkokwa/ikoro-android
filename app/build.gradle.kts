@@ -47,6 +47,11 @@ android {
         val escrowContractAddress: String = project.findProperty("escrowContractAddress") as? String ?: ""
         buildConfigField("String", "ESCROW_CONTRACT_ADDRESS", "\"$escrowContractAddress\"")
 
+        val ntfyServerUrl: String = project.findProperty("ntfyServerUrl") as? String
+            ?: project.findProperty("ntfy_server_url") as? String
+            ?: "https://ntfy.ugogbe.info"
+        buildConfigField("String", "NTFY_SERVER_URL", "\"$ntfyServerUrl\"")
+
         buildConfigField("String", "AGABRA_INVITE_ENDPOINT", "\"https://smp.ugogbe.info/agbara/invite\"")
         buildConfigField("String", "SMP_SERVER_URI", "\"smp://kG8TDZb0A1r1MCy5do5eVfQTInWPliSI7XOjJObSy1E=:ikoro-smp-pass-2026@smp.ugogbe.info:5223,443\"")
     }
@@ -153,6 +158,7 @@ dependencies {
 
     // Networking / crypto
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("com.squareup.okhttp3:okhttp-sse:4.12.0")
     implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
     implementation("com.google.zxing:core:3.5.3")
 
