@@ -4,14 +4,14 @@ import android.content.Context
 import androidx.room.Room
 import com.ikoro.android.data.local.AppDatabase
 import com.ikoro.android.data.local.IdentityStore
+import com.ikoro.android.data.remote.EvmRpcService
 import com.ikoro.android.data.remote.SimplexBridge
+import com.ikoro.android.data.remote.ThirdwebContractService
 import com.ikoro.android.domain.chat.ChatManager
 import com.ikoro.android.domain.identity.IdentityManager
 import com.ikoro.android.domain.wallet.TrustWalletDerivation
 import com.ikoro.android.domain.wallet.WalletDerivation
 import com.ikoro.android.domain.wallet.WalletManager
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
 import timber.log.Timber
 
 object ServiceLocator {
@@ -35,6 +35,12 @@ object ServiceLocator {
 
     @Volatile
     private var walletManager: WalletManager? = null
+
+    @Volatile
+    private var thirdwebContractService: ThirdwebContractService? = null
+
+    @Volatile
+    private var evmRpcService: EvmRpcService? = null
 
     fun init(context: Context) {
         if (appContext != null) return
@@ -64,6 +70,12 @@ object ServiceLocator {
         }
     }
 
+    private fun evmRpcService(): EvmRpcService {
+        return evmRpcService ?: synchronized(this) {
+            evmRpcService ?: EvmRpcService().also { evmRpcService = it }
+        }
+    }
+
     fun identityManager(context: Context): IdentityManager {
         return identityManager ?: synchronized(this) {
             identityManager ?: IdentityManager(identityStore(context), walletDerivation()).also {
@@ -86,6 +98,15 @@ object ServiceLocator {
     fun walletManager(context: Context): WalletManager {
         return walletManager ?: synchronized(this) {
             walletManager ?: WalletManager(context).also { walletManager = it }
+        }
+    }
+
+    fun thirdwebContractService(context: Context): ThirdwebContractService {
+        return thirdwebContractService ?: synchronized(this) {
+            thirdwebContractService ?: ThirdwebContractService(
+                evmRpcService(),
+                walletManager(context)
+            ).also { thirdwebContractService = it }
         }
     }
 }

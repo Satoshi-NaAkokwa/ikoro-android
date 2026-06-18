@@ -136,7 +136,7 @@ private fun StartCallSheet(context: Context, onDismiss: () -> Unit) {
                                 return@launch
                             }
                             Timber.i("LiveKit token acquired for room $room")
-                            // TODO: launch a dedicated RoomActivity with LiveKit room connection
+                            RoomActivity.start(context, token, room)
                             onDismiss()
                         } catch (e: Exception) {
                             Timber.e(e, "LiveKit connect failed")

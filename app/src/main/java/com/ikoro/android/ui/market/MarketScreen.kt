@@ -47,6 +47,8 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.SheetState
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -57,6 +59,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -69,9 +72,12 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.ikoro.android.BuildConfig
 import com.ikoro.android.R
+import com.ikoro.android.di.ServiceLocator
 import com.ikoro.android.ui.components.EmptyAnimations
 import com.ikoro.android.ui.components.EmptyState
+import kotlinx.coroutines.launch
 
 private val Obsidian = Color(0xFF0B0B0F)
 private val Gold = Color(0xFFF2C94C)
@@ -175,41 +181,58 @@ fun MarketScreen() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun P2PExchangeTab() {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val scope = rememberCoroutineScope()
+    val contractService = remember(context) { ServiceLocator.thirdwebContractService(context) }
+    val snackbarHostState = remember { androidx.compose.material3.SnackbarHostState() }
     var showSheet by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     var offers by remember { mutableStateOf(listOf<P2POffer>()) }
     var filter by remember { mutableStateOf("All") }
 
-    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        if (offers.isEmpty()) {
-            EmptyState(
-                title = "No P2P listings yet",
-                subtitle = "Buy or sell crypto directly with other Ikoro users.",
-                animationRes = EmptyAnimations.market,
-                actionLabel = "Create offer",
-                onAction = { showSheet = true }
-            )
-        } else {
-            LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                contentPadding = PaddingValues(vertical = 8.dp)
-            ) {
-                items(listOf("All", "Buy", "Sell", "BTC", "USDT", "aNGN")) { chip ->
-                    FilterChip(
-                        selected = filter == chip,
-                        onClick = { filter = chip },
-                        label = { Text(chip, color = if (filter == chip) Obsidian else Color.White) },
-                        modifier = Modifier.height(32.dp)
-                    )
+    Scaffold(
+        snackbarHost = { androidx.compose.material3.SnackbarHost(snackbarHostState) }
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(16.dp)
+        ) {
+            if (offers.isEmpty()) {
+                EmptyState(
+                    title = "No P2P listings yet",
+                    subtitle = if (BuildConfig.MARKETPLACE_CONTRACT_ADDRESS.isBlank()) {
+                        "Marketplace contract address not configured. Offers will be on-chain once deployed."
+                    } else {
+                        "Buy or sell crypto directly with other Ikoro users."
+                    },
+                    animationRes = EmptyAnimations.market,
+                    actionLabel = "Create offer",
+                    onAction = { showSheet = true }
+                )
+            } else {
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    contentPadding = PaddingValues(vertical = 8.dp)
+                ) {
+                    items(listOf("All", "Buy", "Sell", "BTC", "USDT", "aNGN")) { chip ->
+                        FilterChip(
+                            selected = filter == chip,
+                            onClick = { filter = chip },
+                            label = { Text(chip, color = if (filter == chip) Obsidian else Color.White) },
+                            modifier = Modifier.height(32.dp)
+                        )
+                    }
                 }
-            }
-            LazyColumn(
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                contentPadding = PaddingValues(vertical = 12.dp)
-            ) {
-                items(offers) { offer ->
-                    P2POfferCard(offer)
+                LazyColumn(
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    contentPadding = PaddingValues(vertical = 12.dp)
+                ) {
+                    items(offers) { offer ->
+                        P2POfferCard(offer)
+                    }
                 }
             }
         }
@@ -222,7 +245,24 @@ private fun P2PExchangeTab() {
             containerColor = Surface,
             shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
         ) {
-            CreateOfferSheet(onDismiss = { showSheet = false })
+            CreateOfferSheet(
+                onDismiss = { showSheet = false },
+                onPost = { giveToken, wantToken, giveAmount, wantAmount, expiryHours ->
+                    scope.launch {
+                        val result = contractService.createListing(
+                            chainId = "rootstock",
+                            asset = giveToken,
+                            amount = giveAmount,
+                            price = wantAmount
+                        )
+                        result.onSuccess { txHash ->
+                            snackbarHostState.showSnackbar("Offer posted: $txHash")
+                        }.onFailure { error ->
+                            snackbarHostState.showSnackbar(error.message ?: "Offer failed")
+                        }
+                    }
+                }
+            )
         }
     }
 }
@@ -266,7 +306,10 @@ private fun P2POfferCard(offer: P2POffer) {
 }
 
 @Composable
-private fun CreateOfferSheet(onDismiss: () -> Unit) {
+private fun CreateOfferSheet(
+    onDismiss: () -> Unit,
+    onPost: (giveToken: String, wantToken: String, giveAmount: String, wantAmount: String, expiryHours: String) -> Unit
+) {
     var giveToken by remember { mutableStateOf("") }
     var wantToken by remember { mutableStateOf("") }
     var giveAmount by remember { mutableStateOf("") }
@@ -293,9 +336,14 @@ private fun CreateOfferSheet(onDismiss: () -> Unit) {
         TokenTextField("Expires in hours", expiryHours, KeyboardType.Number) { expiryHours = it }
         Spacer(Modifier.height(24.dp))
         Button(
-            onClick = { onDismiss() },
+            onClick = {
+                onPost(giveToken, wantToken, giveAmount, wantAmount, expiryHours)
+                onDismiss()
+            },
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp)
+            shape = RoundedCornerShape(12.dp),
+            enabled = giveToken.isNotBlank() && wantToken.isNotBlank() &&
+                    giveAmount.isNotBlank() && wantAmount.isNotBlank()
         ) {
             Text("Post offer", color = Obsidian, fontWeight = FontWeight.SemiBold)
         }

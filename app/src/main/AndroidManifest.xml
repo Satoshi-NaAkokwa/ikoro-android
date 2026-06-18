@@ -49,6 +49,10 @@
             android:exported="false"
             android:foregroundServiceType="dataSync" />
 
+        <activity
+            android:name=".ui.calls.RoomActivity"
+            android:exported="false" />
+
         <receiver
             android:name=".service.BootReceiver"
             android:enabled="true"

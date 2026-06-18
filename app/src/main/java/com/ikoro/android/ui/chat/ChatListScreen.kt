@@ -51,6 +51,7 @@ fun ChatListScreen(
 ) {
     val contacts by chatManager.allContacts().collectAsState(initial = emptyList())
     var showAdd by remember { mutableStateOf(false) }
+    var showGroup by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
     Scaffold(
@@ -90,6 +91,20 @@ fun ChatListScreen(
                     chatManager.addContact(name, npub)
                 }
                 showAdd = false
+            },
+            onCreateGroup = {
+                showAdd = false
+                showGroup = true
+            }
+        )
+    }
+
+    if (showGroup) {
+        CreateGroupDialog(
+            onDismiss = { showGroup = false },
+            onCreate = { name ->
+                scope.launch { chatManager.createGroup(name) }
+                showGroup = false
             }
         )
     }
@@ -154,7 +169,8 @@ private fun ContactRow(contact: ChatContact, onClick: () -> Unit) {
 @Composable
 private fun AddContactDialog(
     onDismiss: () -> Unit,
-    onAdd: (String, String) -> Unit
+    onAdd: (String, String) -> Unit,
+    onCreateGroup: () -> Unit
 ) {
     var name by remember { mutableStateOf("") }
     var npub by remember { mutableStateOf("") }
@@ -183,6 +199,39 @@ private fun AddContactDialog(
                 enabled = name.isNotBlank()
             ) {
                 Text(stringResource(R.string.add))
+            }
+        },
+        dismissButton = {
+            androidx.compose.material3.TextButton(onClick = onCreateGroup) {
+                Text("Create group")
+            }
+        }
+    )
+}
+
+@Composable
+private fun CreateGroupDialog(
+    onDismiss: () -> Unit,
+    onCreate: (String) -> Unit
+) {
+    var name by remember { mutableStateOf("") }
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Create group") },
+        text = {
+            androidx.compose.material3.OutlinedTextField(
+                value = name,
+                onValueChange = { name = it },
+                label = { Text("Group name") },
+                modifier = Modifier.fillMaxWidth()
+            )
+        },
+        confirmButton = {
+            androidx.compose.material3.TextButton(
+                onClick = { onCreate(name) },
+                enabled = name.isNotBlank()
+            ) {
+                Text("Create")
             }
         },
         dismissButton = {
