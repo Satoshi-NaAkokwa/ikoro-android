@@ -14,8 +14,8 @@ android {
         applicationId = "com.ikoro.android"
         minSdk = 24
         targetSdk = 34
-        versionCode = 8
-        versionName = "2.0.0"
+        versionCode = 9
+        "2.1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
