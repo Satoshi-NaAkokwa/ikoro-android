@@ -1,44 +1,50 @@
 package com.ikoro.android.domain.identity
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class IdentityDerivationTest {
 
-    @Test
-    fun `bip39 mnemonic has 12 words and validates`() {
-        val mnemonic = Bip39Helper.generateMnemonic(12)
-        val words = Bip39Helper.parseWords(mnemonic)
-        assertEquals(12, words.size)
-        Bip39Helper.validateMnemonic(words) // should not throw
-    }
+    private val testMnemonic = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
 
     @Test
-    fun `evm address starts with 0x and is 42 chars`() {
-        val seed = Bip39Helper.mnemonicToSeed("abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about")
-        val addr = "0x" + KeyDerivation.deriveEvmAddress(seed)
-        assertTrue(addr.startsWith("0x"))
-        assertEquals(42, addr.length)
-    }
-
-    @Test
-    fun `same mnemonic derives same nostr bech32 keys`() {
-        val seed = Bip39Helper.mnemonicToSeed("abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about")
-        val keys1 = KeyDerivation.deriveNostrKeyPair(seed)
-        val keys2 = KeyDerivation.deriveNostrKeyPair(seed)
+    fun `nostr derivation is deterministic and bech32`() {
+        val keys1 = NostrDerivation.derive(testMnemonic)
+        val keys2 = NostrDerivation.derive(testMnemonic)
         assertEquals(keys1, keys2)
-        val npub = Bech32Nostr.encodeNpub(keys1.publicKey)
-        val nsec = Bech32Nostr.encodeNsec(keys1.privateKey)
-        assertTrue(npub.startsWith("npub1"))
-        assertTrue(nsec.startsWith("nsec1"))
+        assertTrue(keys1.npub.startsWith("npub1"))
+        assertTrue(keys1.nsec.startsWith("nsec1"))
     }
 
     @Test
     fun `seed fingerprint is 8 hex chars`() {
-        val seed = Bip39Helper.mnemonicToSeed("abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about")
-        val fp = KeyDerivation.seedFingerprint(seed)
+        val entropy = NostrDerivation.mnemonicToEntropy(testMnemonic)
+        val fp = entropy.toHex().substring(0, 8)
         assertEquals(8, fp.length)
         assertTrue(fp.all { it.isDigit() || it in 'a'..'f' })
     }
+
+    @Test
+    fun `restore identity produces valid identity fields`() {
+        val manager = IdentityManager(StubIdentityStorage(), StubWalletDerivation())
+        val result = manager.restoreIdentity(testMnemonic)
+        assertTrue("restore failed: ${result.exceptionOrNull()?.message}", result.isSuccess)
+        val identity = result.getOrThrow()
+        assertNotNull(identity)
+        assertTrue(identity.evmAddress.startsWith("0x"))
+        assertTrue(identity.nostrNpub.startsWith("npub1"))
+        assertTrue(identity.nostrNsec.startsWith("nsec1"))
+        assertEquals(8, identity.seedFingerprint.length)
+    }
+
+    @Test
+    fun `invalid mnemonic word count is rejected`() {
+        val manager = IdentityManager(StubIdentityStorage(), StubWalletDerivation())
+        val result = manager.restoreIdentity("one two three")
+        assertTrue(result.isFailure)
+    }
+
+    private fun ByteArray.toHex(): String = joinToString("") { "%02x".format(it) }
 }

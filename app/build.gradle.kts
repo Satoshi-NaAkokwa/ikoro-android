@@ -14,8 +14,8 @@ android {
         applicationId = "com.ikoro.android"
         minSdk = 24
         targetSdk = 34
-        versionCode = 9
-        "2.1.0"
+        versionCode = 10
+        versionName = "0.1.0-phase1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -56,7 +56,7 @@ android {
 
     signingConfigs {
         create("release") {
-            storeFile = file("ikoro-release.keystore")
+            storeFile = file("/root/.openclaw/workspace/ikoro-android/app/ikoro-release.keystore")
             storePassword = System.getenv("IKORO_KEYSTORE_PASSWORD") ?: "ikoro123"
             keyAlias = "ikoro"
             keyPassword = System.getenv("IKORO_KEY_PASSWORD") ?: "ikoro123"
@@ -67,12 +67,7 @@ android {
         getByName("release") {
             isMinifyEnabled = false
             isShrinkResources = false
-            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            signingConfig = if ((System.getenv("IKORO_KEYSTORE_PASSWORD") ?: "").isNotBlank()) {
-                signingConfigs.getByName("release")
-            } else {
-                signingConfigs.getByName("debug")
-            }
+            signingConfig = signingConfigs.getByName("release")
             ndk {
                 abiFilters += listOf("arm64-v8a", "armeabi-v7a")
             }
@@ -171,6 +166,9 @@ dependencies {
 
     // Logging
     implementation("com.jakewharton.timber:timber:5.0.1")
+
+    // Pure-Kotlin crypto fallback for Nostr key derivation (no native dependency)
+    implementation("org.bouncycastle:bcprov-jdk15on:1.70")
 
     // Testing
     testImplementation("junit:junit:4.13.2")

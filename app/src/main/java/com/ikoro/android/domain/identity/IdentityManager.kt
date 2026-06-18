@@ -1,15 +1,15 @@
 package com.ikoro.android.domain.identity
 
-import com.ikoro.android.data.local.IdentityStore
+import com.ikoro.android.data.local.IdentityStorage
 import com.ikoro.android.data.model.Identity
-import rust.nostr.sdk.Keys
-import rust.nostr.sdk.SecretKey
+import com.ikoro.android.domain.wallet.WalletDerivation
 import timber.log.Timber
-import wallet.core.jni.CoinType
-import wallet.core.jni.HDWallet
 import java.security.MessageDigest
 
-class IdentityManager(private val store: IdentityStore) {
+class IdentityManager(
+    private val store: IdentityStorage,
+    private val walletDerivation: WalletDerivation
+) {
 
     fun hasValidIdentity(): Boolean {
         if (!store.hasIdentity) return false
@@ -28,7 +28,7 @@ class IdentityManager(private val store: IdentityStore) {
 
     fun createIdentity(): Result<Identity> {
         return try {
-            val mnemonic = HDWallet(256, "").mnemonic()
+            val mnemonic = generateMnemonic()
             val identity = deriveIdentity(mnemonic)
             store.saveIdentity(identity)
             Result.success(identity)
@@ -42,7 +42,8 @@ class IdentityManager(private val store: IdentityStore) {
         return try {
             val words = mnemonic.trim().split(Regex("\\s+"))
             require(words.size in listOf(12, 15, 18, 21, 24)) { "Mnemonic must be 12, 15, 18, 21 or 24 words" }
-            HDWallet(mnemonic, "")
+            // Validate by attempting derivation; TrustWalletCore will throw on invalid words
+            walletDerivation.deriveAddresses(mnemonic)
             val identity = deriveIdentity(mnemonic)
             store.saveIdentity(identity)
             Result.success(identity)
@@ -63,21 +64,24 @@ class IdentityManager(private val store: IdentityStore) {
     }
 
     private fun deriveIdentity(mnemonic: String): Identity {
-        val wallet = HDWallet(mnemonic, "")
-        val evmAddress = wallet.getAddressForCoin(CoinType.ETHEREUM)
-        val rootstockAddress = wallet.getAddressForCoin(CoinType.ROOTSTOCK)
+        val derived = walletDerivation.deriveAddresses(mnemonic)
         val nostr = NostrDerivation.derive(mnemonic)
-        val fingerprint = seedFingerprint(wallet.seed())
-        val did = "did:ethr:$evmAddress"
+        val fingerprint = seedFingerprint(derived.seed)
+        val did = "did:ethr:${derived.evmAddress}"
         return Identity(
             mnemonic = mnemonic,
             seedFingerprint = fingerprint,
             nostrNpub = nostr.npub,
             nostrNsec = nostr.nsec,
-            evmAddress = evmAddress,
-            rootstockAddress = rootstockAddress,
+            evmAddress = derived.evmAddress,
+            rootstockAddress = derived.rootstockAddress,
             did = did,
         )
+    }
+
+    private fun generateMnemonic(): String {
+        // Use TrustWalletCore for proper 24-word BIP39 entropy
+        return wallet.core.jni.HDWallet(256, "").mnemonic()
     }
 
     private fun seedFingerprint(seed: ByteArray): String {
