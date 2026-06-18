@@ -49,4 +49,26 @@ class ThirdwebContractService(
         Timber.i("Creating escrow on $chainId with $counterparty for $amount")
         return Result.failure(IllegalStateException("Contract integration requires deployed escrow address"))
     }
+
+    suspend fun executeAction(action: String, params: Map<String, String>): Result<String> {
+        return when (action) {
+            "airtime" -> {
+                Timber.i("Airtime request: $params")
+                Result.failure(IllegalStateException("Airtime escrow contract address not configured"))
+            }
+            "ticket" -> {
+                Timber.i("Ticket request: $params")
+                Result.failure(IllegalStateException("Ticket NFT contract address not configured"))
+            }
+            "savings" -> {
+                Timber.i("Savings request: $params")
+                Result.failure(IllegalStateException("RotatingCredit contract address not configured"))
+            }
+            "land" -> {
+                Timber.i("Land request: $params")
+                Result.failure(IllegalStateException("LandRegistry contract address not configured"))
+            }
+            else -> Result.failure(IllegalArgumentException("Unknown action $action"))
+        }
+    }
 }

@@ -18,6 +18,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.QrCode
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.AlertDialog
@@ -44,6 +46,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
@@ -64,6 +67,7 @@ fun IdentityScreen(identityManager: IdentityManager) {
     val showSeedDialog = remember { mutableStateOf(false) }
     var qrValue by remember { mutableStateOf("") }
     var qrTitle by remember { mutableStateOf("") }
+    var expanded by remember { mutableStateOf(false) }
 
     if (showSeedDialog.value && identity != null) {
         SeedRevealDialog(
@@ -91,25 +95,31 @@ fun IdentityScreen(identityManager: IdentityManager) {
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text(
-                text = stringResource(R.string.your_identity),
-                style = MaterialTheme.typography.headlineSmall
-            )
             if (identity == null) {
                 Text("No identity found.", style = MaterialTheme.typography.bodyMedium)
             } else {
                 Text(
-                    text = "One seed. One identity. One backup for Nostr, DID, and every EVM chain.",
+                    text = stringResource(R.string.your_identity),
+                    style = MaterialTheme.typography.headlineSmall
+                )
+                Text(
+                    text = "One BIP-39 seed controls your username, Nostr keys, DID, and every supported chain. Your EVM address is shared across Rootstock, Ethereum, Base, Polygon, Arbitrum, Optimism and BSC.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                IdentityRow(
-                    label = stringResource(R.string.did_label),
-                    value = identity.did,
-                    onCopy = { copyToClipboard(context, identity.did) }
+
+                MasterIdentityCard(
+                    fingerprint = identity.seedFingerprint,
+                    evmAddress = identity.evmAddress,
+                    onCopy = { copyToClipboard(context, identity.evmAddress) },
+                    onQr = {
+                        qrTitle = "EVM / Rootstock / DID address"
+                        qrValue = identity.evmAddress
+                    }
                 )
+
                 IdentityRow(
-                    label = stringResource(R.string.nostr_label),
+                    label = "Nostr public key",
                     value = identity.nostrNpub,
                     onCopy = { copyToClipboard(context, identity.nostrNpub) },
                     onQr = {
@@ -117,29 +127,28 @@ fun IdentityScreen(identityManager: IdentityManager) {
                         qrValue = identity.nostrNpub
                     }
                 )
-                IdentityRow(
-                    label = stringResource(R.string.evm_label),
-                    value = identity.evmAddress,
-                    onCopy = { copyToClipboard(context, identity.evmAddress) },
-                    onQr = {
-                        qrTitle = "EVM address"
-                        qrValue = identity.evmAddress
-                    }
-                )
-                IdentityRow(
-                    label = stringResource(R.string.rootstock_label),
-                    value = identity.rootstockAddress,
-                    onCopy = { copyToClipboard(context, identity.rootstockAddress) },
-                    onQr = {
-                        qrTitle = "Rootstock address"
-                        qrValue = identity.rootstockAddress
-                    }
-                )
-                IdentityRow(
-                    label = stringResource(R.string.seed_fingerprint_label),
-                    value = identity.seedFingerprint,
-                    onCopy = { copyToClipboard(context, identity.seedFingerprint) }
-                )
+
+                OutlinedButton(
+                    onClick = { expanded = !expanded },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(
+                        imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                        contentDescription = null
+                    )
+                    Spacer(modifier = Modifier.padding(horizontal = 4.dp))
+                    Text(if (expanded) "Hide derived addresses" else "Show all derived addresses")
+                }
+
+                if (expanded) {
+                    DerivedAddressesPanel(
+                        evmAddress = identity.evmAddress,
+                        rootstockAddress = identity.evmAddress,
+                        did = identity.did,
+                        nostrNpub = identity.nostrNpub,
+                        onCopy = { copyToClipboard(context, it) }
+                    )
+                }
 
                 Spacer(modifier = Modifier.height(12.dp))
 
@@ -159,45 +168,120 @@ fun IdentityScreen(identityManager: IdentityManager) {
 }
 
 @Composable
-private fun SeedRevealDialog(seed: String, onDismiss: () -> Unit) {
-    val context = LocalContext.current
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Recovery seed phrase") },
-        text = {
-            Column {
-                Text(
-                    "Anyone with these words controls your identity, wallet and chat history. Do not share or screenshot.",
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodyMedium
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-                Card(
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant
-                    ),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        text = seed,
-                        modifier = Modifier.padding(16.dp),
-                        style = MaterialTheme.typography.bodyMedium
-                    )
+private fun MasterIdentityCard(
+    fingerprint: String,
+    evmAddress: String,
+    onCopy: () -> Unit,
+    onQr: () -> Unit
+) {
+    Card(
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer
+        ),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = "Ikoro Identity",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+            )
+            Text(
+                text = "Seed fingerprint: $fingerprint",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onPrimaryContainer
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "Primary EVM / DID / Rootstock address",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+            )
+            Text(
+                text = evmAddress,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
+                IconButton(onClick = onQr) {
+                    Icon(Icons.Default.QrCode, contentDescription = "Show QR", tint = MaterialTheme.colorScheme.onPrimaryContainer)
+                }
+                IconButton(onClick = onCopy) {
+                    Icon(Icons.Default.ContentCopy, contentDescription = "Copy", tint = MaterialTheme.colorScheme.onPrimaryContainer)
                 }
             }
-        },
-        confirmButton = {
-            Button(onClick = {
-                copyToClipboard(context, seed)
-                onDismiss()
-            }) {
-                Text("Copy and close")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.close)) }
         }
-    )
+    }
+}
+
+@Composable
+private fun DerivedAddressesPanel(
+    evmAddress: String,
+    rootstockAddress: String,
+    did: String,
+    nostrNpub: String,
+    onCopy: (String) -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        DerivedRow(label = "DID", value = did, derivation = "did:ethr:", onCopy = { onCopy(did) })
+        DerivedRow(label = "EVM chains", value = evmAddress, derivation = "m/44'/60'/0'/0/0", onCopy = { onCopy(evmAddress) })
+        DerivedRow(label = "Rootstock", value = rootstockAddress, derivation = "Same EVM address", onCopy = { onCopy(rootstockAddress) })
+        DerivedRow(label = "Nostr", value = nostrNpub, derivation = "NIP-06 / BIP39 → nsec", onCopy = { onCopy(nostrNpub) })
+        Text(
+            text = "Bitcoin is derived independently under BIP-84/BIP-44 from the same seed.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+@Composable
+private fun DerivedRow(
+    label: String,
+    value: String,
+    derivation: String,
+    onCopy: () -> Unit
+) {
+    Card(
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        ),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    text = value,
+                    style = MaterialTheme.typography.bodyMedium,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = derivation,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            IconButton(onClick = onCopy) {
+                Icon(Icons.Default.ContentCopy, contentDescription = "Copy")
+            }
+        }
+    }
 }
 
 @Composable
@@ -251,6 +335,48 @@ private fun IdentityRow(
             }
         }
     }
+}
+
+@Composable
+private fun SeedRevealDialog(seed: String, onDismiss: () -> Unit) {
+    val context = LocalContext.current
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Recovery seed phrase") },
+        text = {
+            Column {
+                Text(
+                    "Anyone with these words controls your identity, wallet and chat history. Do not share or screenshot.",
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = seed,
+                        modifier = Modifier.padding(16.dp),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            Button(onClick = {
+                copyToClipboard(context, seed)
+                onDismiss()
+            }) {
+                Text("Copy and close")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.close)) }
+        }
+    )
 }
 
 private fun requestAuthentication(context: Context, onSuccess: () -> Unit) {

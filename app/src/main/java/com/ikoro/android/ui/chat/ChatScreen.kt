@@ -17,7 +17,7 @@ fun ChatScreen() {
     val context = LocalContext.current
     val chatManager = remember(context) { ServiceLocator.chatManager(context) }
     val scope = rememberCoroutineScope()
-    val callManager = remember { LiveKitCallManager(context) }
+    val callManager = remember { LiveKitCallManager() }
 
     // Pin Agabra support contact on first render
     LaunchedEffect(Unit) { chatManager.pinAgabra() }
@@ -44,10 +44,7 @@ fun ChatScreen() {
     } ?: run {
         ChatListScreen(
             chatManager = chatManager,
-            onOpenChat = { contact: ChatContact -> selected.value = contact },
-            onCreateGroup = {
-                // Handled inside ChatListScreen via its own dialog
-            }
+            onOpenChat = { contact: ChatContact -> selected.value = contact }
         )
     }
 }

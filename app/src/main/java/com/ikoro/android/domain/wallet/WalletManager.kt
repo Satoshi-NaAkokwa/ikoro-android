@@ -29,65 +29,124 @@ class WalletManager(context: Context) {
     private val prices = CoinGeckoService()
 
     private val hdWallet: HDWallet?
-        get() = identityManager.loadMnemonic()?.let { HDWallet(it, "") }
+        get() {
+            val mnemonic = identityManager.loadMnemonic() ?: return null
+            return try {
+                HDWallet(mnemonic, "")
+            } catch (e: Throwable) {
+                Timber.e(e, "HDWallet native derivation failed")
+                null
+            }
+        }
 
     private val chains = listOf(
-        Chain("rootstock", "Rootstock", "RBTC", CoinType.ROOTSTOCK, 18, 0xFF00A36C),
-        Chain("ethereum", "Ethereum", "ETH", CoinType.ETHEREUM, 18, 0xFF627EEA),
-        Chain("base", "Base", "ETH", CoinType.BASE, 18, 0xFF0052FF),
-        Chain("polygon", "Polygon", "MATIC", CoinType.POLYGON, 18, 0xFF8247E5),
-        Chain("arbitrum", "Arbitrum", "ETH", CoinType.ARBITRUM, 18, 0xFF28A0F0),
-        Chain("optimism", "Optimism", "ETH", CoinType.OPTIMISM, 18, 0xFFFF0420),
-        Chain("bsc", "BSC", "BNB", CoinType.SMARTCHAIN, 18, 0xFFF0B90B)
+        Chain("rootstock", "Rootstock", "RBTC", CoinType.ETHEREUM, 18, 0xFF00A36C, 30L),
+        Chain("ethereum", "Ethereum", "ETH", CoinType.ETHEREUM, 18, 0xFF627EEA, 1L),
+        Chain("base", "Base", "ETH", CoinType.ETHEREUM, 18, 0xFF0052FF, 8453L),
+        Chain("polygon", "Polygon", "MATIC", CoinType.ETHEREUM, 18, 0xFF8247E5, 137L),
+        Chain("arbitrum", "Arbitrum", "ETH", CoinType.ETHEREUM, 18, 0xFF28A0F0, 42161L),
+        Chain("optimism", "Optimism", "ETH", CoinType.ETHEREUM, 18, 0xFFFF0420, 10L),
+        Chain("bsc", "BSC", "BNB", CoinType.ETHEREUM, 18, 0xFFF0B90B, 56L)
     )
 
     fun initialize() {
-        Timber.i("WalletManager initialized with Trust Wallet Core")
+        Timber.i("WalletManager initialized; native bridge available=${NativeWalletBridge.isAvailable()}")
     }
 
     suspend fun loadAssets(): List<Asset> = withContext(Dispatchers.IO) {
+        if (!NativeWalletBridge.isAvailable()) {
+            Timber.w("Cannot load assets: native wallet bridge unavailable")
+            return@withContext listOf(
+                Asset(
+                    id = "native-unavailable",
+                    chainName = "Wallet library unavailable",
+                    symbol = "N/A",
+                    address = "",
+                    balance = "Native wallet library failed to load",
+                    fiatValue = "",
+                    accentColor = 0xFFFF0000,
+                    isPrimary = false
+                )
+            )
+        }
         val wallet = hdWallet ?: return@withContext emptyList()
-        val all = chains.map { chain ->
+        val evmAddress = wallet.getAddressForCoin(CoinType.ETHEREUM)
+        val bitcoinAddress = try {
+            wallet.getAddressForCoin(CoinType.BITCOIN)
+        } catch (e: Throwable) {
+            Timber.e(e, "Bitcoin address derivation failed")
+            ""
+        }
+
+        val evmAssets = chains.map { chain ->
             async {
-                val address = wallet.getAddressForCoin(chain.coinType)
-                val balanceResult = evmRpc.getBalance(chain.id, address)
+                try {
+                    val balanceResult = evmRpc.getBalance(chain.id, evmAddress)
+                    val balance = balanceResult.getOrDefault(BigDecimal.ZERO)
+                    val priceResult = prices.getPriceUsd(chain.id)
+                    val price = priceResult.getOrDefault(BigDecimal.ZERO)
+                    val fiat = balance.multiply(price).setScale(2, RoundingMode.HALF_UP)
+                    Asset(
+                        id = chain.id,
+                        chainName = chain.displayName,
+                        symbol = chain.symbol,
+                        address = evmAddress,
+                        balance = "${balance.stripTrailingZeros().toPlainString()} ${chain.symbol}",
+                        fiatValue = "\u0024$fiat",
+                        accentColor = chain.color,
+                        isPrimary = chain.id == "rootstock"
+                    )
+                } catch (e: Throwable) {
+                    Timber.e(e, "Asset load failed for ${chain.id}")
+                    Asset(
+                        id = chain.id,
+                        chainName = chain.displayName,
+                        symbol = chain.symbol,
+                        address = evmAddress,
+                        balance = "Balance unavailable",
+                        fiatValue = "",
+                        accentColor = chain.color,
+                        isPrimary = chain.id == "rootstock"
+                    )
+                }
+            }
+        }
+        val btcAsset = async {
+            try {
+                val balanceResult = mempool.getBalance(bitcoinAddress)
                 val balance = balanceResult.getOrDefault(BigDecimal.ZERO)
-                val priceResult = prices.getPriceUsd(chain.id)
+                val priceResult = prices.getPriceUsd("bitcoin")
                 val price = priceResult.getOrDefault(BigDecimal.ZERO)
                 val fiat = balance.multiply(price).setScale(2, RoundingMode.HALF_UP)
                 Asset(
-                    id = chain.id,
-                    chainName = chain.displayName,
-                    symbol = chain.symbol,
-                    address = address,
-                    balance = "${balance.stripTrailingZeros().toPlainString()} ${chain.symbol}",
+                    id = "bitcoin",
+                    chainName = "Bitcoin",
+                    symbol = "BTC",
+                    address = bitcoinAddress,
+                    balance = "${balance.stripTrailingZeros().toPlainString()} BTC",
                     fiatValue = "\u0024$fiat",
-                    accentColor = chain.color,
-                    isPrimary = chain.id == "rootstock"
+                    accentColor = 0xFFF7931A,
+                    isPrimary = false
+                )
+            } catch (e: Throwable) {
+                Timber.e(e, "Bitcoin asset load failed")
+                Asset(
+                    id = "bitcoin",
+                    chainName = "Bitcoin",
+                    symbol = "BTC",
+                    address = bitcoinAddress,
+                    balance = "Balance unavailable",
+                    fiatValue = "",
+                    accentColor = 0xFFF7931A,
+                    isPrimary = false
                 )
             }
-        } + async {
-            val address = wallet.getAddressForCoin(CoinType.BITCOIN)
-            val balanceResult = mempool.getBalance(address)
-            val balance = balanceResult.getOrDefault(BigDecimal.ZERO)
-            val priceResult = prices.getPriceUsd("bitcoin")
-            val price = priceResult.getOrDefault(BigDecimal.ZERO)
-            val fiat = balance.multiply(price).setScale(2, RoundingMode.HALF_UP)
-            Asset(
-                id = "bitcoin",
-                chainName = "Bitcoin",
-                symbol = "BTC",
-                address = address,
-                balance = "${balance.stripTrailingZeros().toPlainString()} BTC",
-                fiatValue = "\u0024$fiat",
-                accentColor = 0xFFF7931A,
-                isPrimary = false
-            )
         }
-        all.awaitAll().filter { it.address.isNotBlank() }
+        (evmAssets + btcAsset).awaitAll().filter { it.address.isNotBlank() || it.id == "native-unavailable" }
     }
 
     suspend fun send(assetId: String, to: String, amount: String): Result<String> = withContext(Dispatchers.IO) {
+        NativeWalletBridge.check().onFailure { return@withContext Result.failure(it) }
         try {
             require(to.isNotBlank()) { "Recipient address is required" }
             val decimal = amount.toBigDecimalOrNull() ?: throw IllegalArgumentException("Invalid amount")
@@ -107,7 +166,7 @@ class WalletManager(context: Context) {
     }
 
     private suspend fun sendEvm(wallet: HDWallet, chain: Chain, to: String, amount: BigDecimal): Result<String> {
-        val privateKey = wallet.getKey(chain.coinType, "m/44'/60'/0'/0/0")
+        val privateKey = wallet.getKey(CoinType.ETHEREUM, "m/44'/60'/0'/0/0")
         val wei = amount.movePointRight(chain.decimals).toBigInteger()
         val input = Ethereum.SigningInput.newBuilder().apply {
             this.chainId = chain.chainId().toByteArray().toByteString()
@@ -121,7 +180,7 @@ class WalletManager(context: Context) {
             }.build()
             this.privateKey = privateKey.data().toByteString()
         }.build()
-        val output = AnySigner.sign(input, chain.coinType, Ethereum.SigningOutput.parser())
+        val output = AnySigner.sign(input, CoinType.ETHEREUM, Ethereum.SigningOutput.parser())
         val signed = output.encoded.toByteArray().toHexString()
         return evmRpc.sendRawTransaction(chain.id, signed)
     }
@@ -163,21 +222,11 @@ class WalletManager(context: Context) {
         val symbol: String,
         val coinType: CoinType,
         val decimals: Int,
-        val color: Long
-    ) {
-        fun chainId(): Long {
-            return when (coinType) {
-                CoinType.ETHEREUM -> 1L
-                CoinType.ROOTSTOCK -> 30L
-                CoinType.BASE -> 8453L
-                CoinType.POLYGON -> 137L
-                CoinType.ARBITRUM -> 42161L
-                CoinType.OPTIMISM -> 10L
-                CoinType.SMARTCHAIN -> 56L
-                else -> 1L
-            }
-        }
-    }
+        val color: Long,
+        val chainId: Long
+    )
+
+    private fun Chain.chainId(): Long = chainId
 }
 
 private fun Long.toByteArray(): ByteArray = BigInteger.valueOf(this).toByteArray()

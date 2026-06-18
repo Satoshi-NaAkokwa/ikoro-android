@@ -46,8 +46,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun ChatListScreen(
     chatManager: ChatManager,
-    onOpenChat: (ChatContact) -> Unit,
-    onCreateGroup: () -> Unit
+    onOpenChat: (ChatContact) -> Unit
 ) {
     val contacts by chatManager.allContacts().collectAsState(initial = emptyList())
     var showAdd by remember { mutableStateOf(false) }

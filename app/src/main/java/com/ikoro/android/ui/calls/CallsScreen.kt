@@ -91,7 +91,7 @@ private fun StartCallSheet(context: Context, onDismiss: () -> Unit) {
     var loading by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf("") }
     val scope = rememberCoroutineScope()
-    val manager = remember { LiveKitCallManager(context) }
+    val manager = remember { LiveKitCallManager() }
 
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(

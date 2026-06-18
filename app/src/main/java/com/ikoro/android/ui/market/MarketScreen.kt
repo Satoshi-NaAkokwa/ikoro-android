@@ -28,10 +28,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AirplanemodeActive
-import androidx.compose.material.icons.filled.CurrencyBitcoin
 import androidx.compose.material.icons.filled.Event
 import androidx.compose.material.icons.filled.Landscape
-import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material.icons.filled.Savings
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.Button
@@ -46,7 +44,6 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ScrollableTabRow
-import androidx.compose.material3.SheetState
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Tab
@@ -66,6 +63,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -161,9 +159,7 @@ fun MarketScreen() {
             )
             AnimatedContent(
                 targetState = selected,
-                transitionSpec = {
-                    fadeIn() togetherWith fadeOut()
-                },
+                transitionSpec = { fadeIn() togetherWith fadeOut() },
                 label = "market-tab"
             ) { target ->
                 when (target) {
@@ -181,18 +177,17 @@ fun MarketScreen() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun P2PExchangeTab() {
-    val context = androidx.compose.ui.platform.LocalContext.current
+    val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val contractService = remember(context) { ServiceLocator.thirdwebContractService(context) }
-    val snackbarHostState = remember { androidx.compose.material3.SnackbarHostState() }
+    val snackbarHostState = remember { SnackbarHostState() }
     var showSheet by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-
     var offers by remember { mutableStateOf(listOf<P2POffer>()) }
     var filter by remember { mutableStateOf("All") }
 
     Scaffold(
-        snackbarHost = { androidx.compose.material3.SnackbarHost(snackbarHostState) }
+        snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
         Column(
             modifier = Modifier
@@ -231,7 +226,7 @@ private fun P2PExchangeTab() {
                     contentPadding = PaddingValues(vertical = 12.dp)
                 ) {
                     items(offers) { offer ->
-                        P2POfferCard(offer)
+                        P2POfferCard(offer, snackbarHostState, contractService, scope)
                     }
                 }
             }
@@ -247,7 +242,7 @@ private fun P2PExchangeTab() {
         ) {
             CreateOfferSheet(
                 onDismiss = { showSheet = false },
-                onPost = { giveToken, wantToken, giveAmount, wantAmount, expiryHours ->
+                onPost = { giveToken, wantToken, giveAmount, wantAmount, _ ->
                     scope.launch {
                         val result = contractService.createListing(
                             chainId = "rootstock",
@@ -255,11 +250,12 @@ private fun P2PExchangeTab() {
                             amount = giveAmount,
                             price = wantAmount
                         )
-                        result.onSuccess { txHash ->
-                            snackbarHostState.showSnackbar("Offer posted: $txHash")
-                        }.onFailure { error ->
-                            snackbarHostState.showSnackbar(error.message ?: "Offer failed")
-                        }
+                        snackbarHostState.showSnackbar(
+                            result.fold(
+                                onSuccess = { "Offer posted: $it" },
+                                onFailure = { it.message ?: "Offer failed" }
+                            )
+                        )
                     }
                 }
             )
@@ -276,7 +272,12 @@ private data class P2POffer(
 )
 
 @Composable
-private fun P2POfferCard(offer: P2POffer) {
+private fun P2POfferCard(
+    offer: P2POffer,
+    snackbarHostState: SnackbarHostState,
+    contractService: com.ikoro.android.data.remote.ThirdwebContractService,
+    scope: kotlinx.coroutines.CoroutineScope
+) {
     Card(
         colors = CardDefaults.cardColors(containerColor = Surface),
         shape = RoundedCornerShape(16.dp),
@@ -296,7 +297,17 @@ private fun P2POfferCard(offer: P2POffer) {
                 Text("Limits: ${offer.limits}", color = Neutral, fontSize = MaterialTheme.typography.bodySmall.fontSize)
             }
             Button(
-                onClick = { },
+                onClick = {
+                    scope.launch {
+                        val result = contractService.acceptListing("rootstock", "0", "0")
+                        snackbarHostState.showSnackbar(
+                            result.fold(
+                                onSuccess = { "Trade accepted: $it" },
+                                onFailure = { it.message ?: "Trade failed" }
+                            )
+                        )
+                    }
+                },
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Text(if (offer.side == "Buy") "Buy" else "Sell", color = Obsidian)
@@ -353,9 +364,11 @@ private fun CreateOfferSheet(
 
 @Composable
 private fun AirtimeTab() {
+    val context = LocalContext.current
     var phone by remember { mutableStateOf("") }
     var amount by remember { mutableStateOf("") }
     var selectedProvider by remember { mutableStateOf<String?>(null) }
+    var showDialog by remember { mutableStateOf(false) }
     val providers = listOf("MTN", "Airtel", "Glo", "9mobile")
 
     Column(
@@ -401,12 +414,21 @@ private fun AirtimeTab() {
         }
         Spacer(Modifier.height(24.dp))
         Button(
-            onClick = { },
+            onClick = { showDialog = true },
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp)
+            shape = RoundedCornerShape(12.dp),
+            enabled = phone.isNotBlank() && amount.isNotBlank()
         ) {
             Text("Pay now", color = Obsidian, fontWeight = FontWeight.SemiBold)
         }
+    }
+
+    if (showDialog) {
+        AirtimePayDialog(
+            context = context,
+            providers = providers,
+            onDismiss = { showDialog = false }
+        )
     }
 }
 
@@ -425,27 +447,42 @@ private fun ProviderChip(name: String, selected: Boolean, onClick: () -> Unit) {
 
 @Composable
 private fun TicketsTab() {
+    val context = LocalContext.current
     val events = listOf(
         TicketEvent("Afrobeat Festival", "Lagos", "Sat, 15 Jul", "0.05 RBTC", "120 sold"),
         TicketEvent("Tech Summit", "Abuja", "Mon, 24 Jul", "0.02 RBTC", "45 sold"),
         TicketEvent("Community Football", "Enugu", "Sun, 30 Jul", "0.01 RBTC", "200 sold")
     )
+    var selectedEvent by remember { mutableStateOf<TicketEvent?>(null) }
+
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
         Text("Events & Tickets", color = Color.White, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.headlineSmall)
         Spacer(Modifier.height(16.dp))
         LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             items(events) { event ->
-                EventCard(event)
+                EventCard(event, onClick = { selectedEvent = event })
             }
         }
     }
+
+    selectedEvent?.let { event ->
+        TicketBuyDialog(
+            context = context,
+            event = event,
+            onDismiss = { selectedEvent = null }
+        )
+    }
 }
 
-private data class TicketEvent(val title: String, val location: String, val date: String, val price: String, val sold: String)
-
 @Composable
-private fun EventCard(event: TicketEvent) {
-    Card(colors = CardDefaults.cardColors(containerColor = Surface), shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth()) {
+private fun EventCard(event: TicketEvent, onClick: () -> Unit) {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = Surface),
+        shape = RoundedCornerShape(16.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() }
+    ) {
         Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(modifier = Modifier.size(56.dp).clip(RoundedCornerShape(12.dp)).background(Gold.copy(alpha = 0.2f)), contentAlignment = Alignment.Center) {
                 Icon(Icons.Default.Event, contentDescription = null, tint = Gold, modifier = Modifier.size(28.dp))
@@ -463,10 +500,13 @@ private fun EventCard(event: TicketEvent) {
 
 @Composable
 private fun SavingsTab() {
+    val context = LocalContext.current
     val groups = listOf(
         SavingsGroup("Family Ajo", "10 members", "₦5,000/week", "Next payout: Mon"),
         SavingsGroup("Tech Stokvel", "6 members", "0.01 RBTC/round", "Next payout: Fri")
     )
+    var showCreate by remember { mutableStateOf(false) }
+
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
         Text("Ajo / Esusu / Stokvel", color = Color.White, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.headlineSmall)
         Spacer(Modifier.height(16.dp))
@@ -476,13 +516,18 @@ private fun SavingsTab() {
             }
         }
         Spacer(Modifier.height(16.dp))
-        OutlinedButton(onClick = { }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
+        OutlinedButton(onClick = { showCreate = true }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
             Text("Create group", color = Gold)
         }
     }
-}
 
-private data class SavingsGroup(val name: String, val members: String, val contribution: String, val next: String)
+    if (showCreate) {
+        SavingsCreateDialog(
+            context = context,
+            onDismiss = { showCreate = false }
+        )
+    }
+}
 
 @Composable
 private fun SavingsCard(group: SavingsGroup) {
@@ -504,10 +549,13 @@ private fun SavingsCard(group: SavingsGroup) {
 
 @Composable
 private fun LandRegistryTab() {
+    val context = LocalContext.current
     val parcels = listOf(
         LandParcel("s14kwh2", "Community attested", "Alice"),
         LandParcel("s14kwh3", "Legal + AI", "Bob")
     )
+    var showRegister by remember { mutableStateOf(false) }
+
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
         Text("Land Titles", color = Color.White, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.headlineSmall)
         Spacer(Modifier.height(16.dp))
@@ -517,13 +565,18 @@ private fun LandRegistryTab() {
             }
         }
         Spacer(Modifier.height(16.dp))
-        OutlinedButton(onClick = { }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
+        OutlinedButton(onClick = { showRegister = true }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
             Text("Register parcel", color = Gold)
         }
     }
-}
 
-private data class LandParcel(val geoHash: String, val badge: String, val owner: String)
+    if (showRegister) {
+        LandRegisterDialog(
+            context = context,
+            onDismiss = { showRegister = false }
+        )
+    }
+}
 
 @Composable
 private fun LandCard(parcel: LandParcel) {
@@ -569,3 +622,6 @@ private fun TokenTextField(
         singleLine = true
     )
 }
+
+private data class SavingsGroup(val name: String, val members: String, val contribution: String, val next: String)
+private data class LandParcel(val geoHash: String, val badge: String, val owner: String)

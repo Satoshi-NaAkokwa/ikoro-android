@@ -9,7 +9,7 @@ class TrustWalletDerivation : WalletDerivation {
         val wallet = HDWallet(mnemonic, "")
         return DerivedAddresses(
             evmAddress = wallet.getAddressForCoin(CoinType.ETHEREUM),
-            rootstockAddress = wallet.getAddressForCoin(CoinType.ROOTSTOCK),
+            rootstockAddress = wallet.getAddressForCoin(CoinType.ETHEREUM),
             seed = wallet.seed()
         )
     }
