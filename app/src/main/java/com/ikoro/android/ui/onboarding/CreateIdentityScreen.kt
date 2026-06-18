@@ -58,7 +58,6 @@ fun CreateIdentityScreen(
     onDone: () -> Unit,
     onBack: () -> Unit
 ) {
-    val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var state by remember { mutableStateOf<CreateState>(CreateState.Ready) }
 
@@ -101,7 +100,7 @@ fun CreateIdentityScreen(
         )
         is CreateState.DisplaySeed -> SeedStep(
             identity = s.identity,
-            identityManager = identityManager,
+            _identityManager = identityManager,
             onVerified = { state = CreateState.Verifying(s.identity) },
             onBack = onBack
         )
@@ -210,7 +209,7 @@ private fun ErrorStep(message: String, onRetry: () -> Unit, onRestore: () -> Uni
 @Composable
 private fun SeedStep(
     identity: Identity,
-    identityManager: IdentityManager,
+    _identityManager: IdentityManager,
     onVerified: () -> Unit,
     onBack: () -> Unit
 ) {

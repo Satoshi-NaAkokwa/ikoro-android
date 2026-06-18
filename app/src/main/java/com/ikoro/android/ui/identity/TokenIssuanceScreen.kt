@@ -20,7 +20,7 @@ import com.ikoro.android.data.model.Identity
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TokenIssuanceScreen(identity: Identity?) {
+fun TokenIssuanceScreen(_identity: Identity?) {
     var community by remember { mutableStateOf("") }
     var amount by remember { mutableStateOf("") }
 

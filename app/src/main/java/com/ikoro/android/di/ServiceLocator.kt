@@ -95,17 +95,18 @@ object ServiceLocator {
         }
     }
 
-    fun walletManager(context: Context): WalletManager {
+    fun walletManager(identityManager: IdentityManager): WalletManager {
         return walletManager ?: synchronized(this) {
-            walletManager ?: WalletManager(context).also { walletManager = it }
+            walletManager ?: WalletManager(identityManager).also { walletManager = it }
         }
     }
 
     fun thirdwebContractService(context: Context): ThirdwebContractService {
         return thirdwebContractService ?: synchronized(this) {
+            val identityManager = identityManager(context)
             thirdwebContractService ?: ThirdwebContractService(
                 evmRpcService(),
-                walletManager(context)
+                walletManager(identityManager)
             ).also { thirdwebContractService = it }
         }
     }

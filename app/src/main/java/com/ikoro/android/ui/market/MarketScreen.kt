@@ -242,7 +242,7 @@ private fun P2PExchangeTab() {
         ) {
             CreateOfferSheet(
                 onDismiss = { showSheet = false },
-                onPost = { giveToken, wantToken, giveAmount, wantAmount, _ ->
+                onPost = { giveToken, _, giveAmount, wantAmount, _ ->
                     scope.launch {
                         val result = contractService.createListing(
                             chainId = "rootstock",

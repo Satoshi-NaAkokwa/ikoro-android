@@ -34,7 +34,7 @@ class ThirdwebContractService(
         if (marketplaceAddress.isBlank()) {
             return Result.failure(IllegalStateException("Marketplace contract address not configured"))
         }
-        Timber.i("Accepting listing $listingId on $chainId")
+        Timber.i("Accepting listing $listingId on $chainId for value=$value")
         return Result.failure(IllegalStateException("Contract integration requires deployed marketplace address"))
     }
 

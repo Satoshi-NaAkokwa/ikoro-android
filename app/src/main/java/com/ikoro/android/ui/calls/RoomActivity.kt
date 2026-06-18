@@ -146,7 +146,6 @@ private fun RoomScreen(
     roomName: String,
     onDisconnect: () -> Unit
 ) {
-    val context = LocalContext.current
     var micEnabled by remember { mutableStateOf(true) }
     var camEnabled by remember { mutableStateOf(false) }
 

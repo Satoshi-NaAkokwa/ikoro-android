@@ -17,7 +17,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -44,20 +44,19 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.platform.LocalContext
 import com.ikoro.android.R
 import com.ikoro.android.data.model.Asset
 import com.ikoro.android.data.model.Identity
-import com.ikoro.android.di.ServiceLocator
 import com.ikoro.android.domain.identity.IdentityManager
+import com.ikoro.android.domain.wallet.WalletManager
 import com.ikoro.android.ui.components.EmptyAnimations
 import com.ikoro.android.ui.components.EmptyState
+import timber.log.Timber
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WalletScreen(identityManager: IdentityManager) {
-    val context = LocalContext.current
-    val walletManager = remember { ServiceLocator.walletManager(context) }
+    val walletManager = remember(identityManager) { WalletManager(identityManager) }
     val identityState: State<Identity?> = produceState<Identity?>(null) {
         value = identityManager.loadExistingIdentity()
     }
@@ -66,18 +65,28 @@ fun WalletScreen(identityManager: IdentityManager) {
     val assets = remember { mutableStateOf(listOf<Asset>()) }
     var sendAsset by remember { mutableStateOf<Asset?>(null) }
 
+    var loadError by remember { mutableStateOf("") }
+
     LaunchedEffect(Unit) {
-        assets.value = walletManager.loadAssets()
+        try {
+            assets.value = walletManager.loadAssets()
+            loadError = ""
+        } catch (e: Throwable) {
+            Timber.e(e, "Wallet asset load crashed")
+            loadError = "Could not load wallet: ${e.localizedMessage ?: e.javaClass.simpleName}"
+        }
     }
 
     Scaffold(
         topBar = { TopAppBar(title = { Text(stringResource(R.string.wallet)) }) },
         floatingActionButton = {
-            ExtendedFloatingActionButton(
-                onClick = { sendAsset = assets.value.firstOrNull() },
-                icon = { Icon(Icons.Default.Send, contentDescription = null) },
-                text = { Text("Send") }
-            )
+            if (loadError.isBlank()) {
+                ExtendedFloatingActionButton(
+                    onClick = { sendAsset = assets.value.firstOrNull() },
+                    icon = { Icon(Icons.AutoMirrored.Filled.Send, contentDescription = null) },
+                    text = { Text("Send") }
+                )
+            }
         }
     ) { padding ->
         Column(
@@ -97,6 +106,21 @@ fun WalletScreen(identityManager: IdentityManager) {
 
             WalletHeader(identity.evmAddress, assets.value)
             Spacer(modifier = Modifier.height(16.dp))
+
+            if (loadError.isNotBlank()) {
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)
+                ) {
+                    Text(
+                        text = loadError,
+                        color = MaterialTheme.colorScheme.onErrorContainer,
+                        modifier = Modifier.padding(16.dp)
+                    )
+                }
+            }
+
             Text(
                 text = "Assets",
                 style = MaterialTheme.typography.titleMedium,

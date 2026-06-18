@@ -1,11 +1,10 @@
 package com.ikoro.android.domain.wallet
 
-import android.content.Context
 import com.ikoro.android.data.model.Asset
 import com.ikoro.android.data.remote.CoinGeckoService
 import com.ikoro.android.data.remote.EvmRpcService
 import com.ikoro.android.data.remote.MempoolService
-import com.ikoro.android.di.ServiceLocator
+import com.ikoro.android.domain.identity.IdentityManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -21,12 +20,12 @@ import java.math.BigDecimal
 import java.math.BigInteger
 import java.math.RoundingMode
 
-class WalletManager(context: Context) {
-
-    private val identityManager = ServiceLocator.identityManager(context)
-    private val mempool = MempoolService()
-    private val evmRpc = EvmRpcService()
-    private val prices = CoinGeckoService()
+class WalletManager(
+    private val identityManager: IdentityManager,
+    private val mempool: MempoolService = MempoolService(),
+    private val evmRpc: EvmRpcService = EvmRpcService(),
+    private val prices: CoinGeckoService = CoinGeckoService()
+) {
 
     private val hdWallet: HDWallet?
         get() {
