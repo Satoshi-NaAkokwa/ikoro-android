@@ -36,6 +36,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -46,6 +47,9 @@ import androidx.compose.ui.unit.dp
 import com.ikoro.android.R
 import com.ikoro.android.data.model.Identity
 import com.ikoro.android.domain.identity.IdentityManager
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -55,32 +59,35 @@ fun CreateIdentityScreen(
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     var state by remember { mutableStateOf<CreateState>(CreateState.Ready) }
 
     when (val s = state) {
         is CreateState.Ready -> GenerateStep(
             onGenerate = {
                 state = CreateState.Generating
+                scope.launch(Dispatchers.IO) {
+                    val result = identityManager.createIdentity()
+                    withContext(Dispatchers.Main) {
+                        state = if (result.isSuccess) {
+                            CreateState.DisplaySeed(result.getOrThrow())
+                        } else {
+                            val error = result.exceptionOrNull()?.localizedMessage ?: "Unknown error"
+                            CreateState.Error(error)
+                        }
+                    }
+                }
             },
             onBack = onBack
         )
-        is CreateState.Generating -> {
-            val result = remember { identityManager.createIdentity() }
-            if (result.isSuccess) {
-                state = CreateState.DisplaySeed(result.getOrThrow())
-            } else {
-                val error = result.exceptionOrNull()?.localizedMessage ?: "Unknown error"
-                state = CreateState.Error(error)
-            }
-            Column(
-                modifier = Modifier.fillMaxSize(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                CircularProgressIndicator()
-                Spacer(modifier = Modifier.height(12.dp))
-                Text("Creating your identity…")
-            }
+        is CreateState.Generating -> Column(
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            CircularProgressIndicator()
+            Spacer(modifier = Modifier.height(12.dp))
+            Text("Creating your identity…")
         }
         is CreateState.Error -> ErrorStep(
             message = s.message,
@@ -120,13 +127,15 @@ private fun GenerateStep(onGenerate: () -> Unit, onBack: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(24.dp),
+            .padding(24.dp)
+            .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = "Create your Ikoro identity",
-            style = MaterialTheme.typography.headlineSmall,
+            text = stringResource(R.string.create_identity),
+            style = MaterialTheme.typography.headlineMedium,
+            color = MaterialTheme.colorScheme.primary,
             textAlign = TextAlign.Center
         )
         Spacer(modifier = Modifier.height(16.dp))

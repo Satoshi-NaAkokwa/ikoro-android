@@ -16,7 +16,7 @@ class LiveKitCallManager(context: Context) {
     suspend fun fetchToken(room: String, identity: String): Result<String> = withContext(Dispatchers.IO) {
         try {
             val endpoint = BuildConfig.LIVEKIT_TOKEN_ENDPOINT
-            if (endpoint.isBlank() || endpoint == "https://livekit.ugogbe.info/token") {
+            if (endpoint.isBlank()) {
                 return@withContext Result.failure(IllegalStateException("LiveKit token endpoint not configured"))
             }
             val url = "$endpoint?room=${java.net.URLEncoder.encode(room, "UTF-8")}&identity=${java.net.URLEncoder.encode(identity, "UTF-8")}"

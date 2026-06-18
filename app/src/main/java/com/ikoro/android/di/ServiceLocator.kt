@@ -7,6 +7,8 @@ import com.ikoro.android.data.local.IdentityStore
 import com.ikoro.android.data.remote.SimplexBridge
 import com.ikoro.android.domain.chat.ChatManager
 import com.ikoro.android.domain.identity.IdentityManager
+import com.ikoro.android.domain.wallet.TrustWalletDerivation
+import com.ikoro.android.domain.wallet.WalletDerivation
 import com.ikoro.android.domain.wallet.WalletManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -24,6 +26,9 @@ object ServiceLocator {
 
     @Volatile
     private var identityManager: IdentityManager? = null
+
+    @Volatile
+    private var walletDerivation: WalletDerivation? = null
 
     @Volatile
     private var chatManager: ChatManager? = null
@@ -53,9 +58,15 @@ object ServiceLocator {
         }
     }
 
+    private fun walletDerivation(): WalletDerivation {
+        return walletDerivation ?: synchronized(this) {
+            walletDerivation ?: TrustWalletDerivation().also { walletDerivation = it }
+        }
+    }
+
     fun identityManager(context: Context): IdentityManager {
         return identityManager ?: synchronized(this) {
-            identityManager ?: IdentityManager(identityStore(context)).also {
+            identityManager ?: IdentityManager(identityStore(context), walletDerivation()).also {
                 identityManager = it
             }
         }
