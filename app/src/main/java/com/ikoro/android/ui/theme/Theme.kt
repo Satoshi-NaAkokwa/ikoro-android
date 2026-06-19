@@ -19,7 +19,7 @@ private val IkoroColorScheme = darkColorScheme(
 
 @Composable
 fun IkoroTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    _darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit
 ) {
     MaterialTheme(

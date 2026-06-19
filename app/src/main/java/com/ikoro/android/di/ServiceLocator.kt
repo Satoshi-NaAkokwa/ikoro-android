@@ -1,13 +1,7 @@
 package com.ikoro.android.di
 
 import android.content.Context
-import androidx.room.Room
-import com.ikoro.android.data.local.AppDatabase
 import com.ikoro.android.data.local.IdentityStore
-import com.ikoro.android.data.remote.EvmRpcService
-import com.ikoro.android.data.remote.SimplexBridge
-import com.ikoro.android.data.remote.ThirdwebContractService
-import com.ikoro.android.domain.chat.ChatManager
 import com.ikoro.android.domain.identity.IdentityManager
 import com.ikoro.android.domain.wallet.TrustWalletDerivation
 import com.ikoro.android.domain.wallet.WalletDerivation
@@ -22,25 +16,13 @@ object ServiceLocator {
     private var identityStore: IdentityStore? = null
 
     @Volatile
-    private var database: AppDatabase? = null
-
-    @Volatile
     private var identityManager: IdentityManager? = null
 
     @Volatile
     private var walletDerivation: WalletDerivation? = null
 
     @Volatile
-    private var chatManager: ChatManager? = null
-
-    @Volatile
     private var walletManager: WalletManager? = null
-
-    @Volatile
-    private var thirdwebContractService: ThirdwebContractService? = null
-
-    @Volatile
-    private var evmRpcService: EvmRpcService? = null
 
     fun init(context: Context) {
         if (appContext != null) return
@@ -54,25 +36,9 @@ object ServiceLocator {
         }
     }
 
-    private fun database(context: Context): AppDatabase {
-        return database ?: synchronized(this) {
-            database ?: Room.databaseBuilder(
-                context,
-                AppDatabase::class.java,
-                "ikoro.db"
-            ).build().also { database = it }
-        }
-    }
-
     private fun walletDerivation(): WalletDerivation {
         return walletDerivation ?: synchronized(this) {
             walletDerivation ?: TrustWalletDerivation().also { walletDerivation = it }
-        }
-    }
-
-    private fun evmRpcService(): EvmRpcService {
-        return evmRpcService ?: synchronized(this) {
-            evmRpcService ?: EvmRpcService().also { evmRpcService = it }
         }
     }
 
@@ -84,30 +50,9 @@ object ServiceLocator {
         }
     }
 
-    fun chatManager(context: Context): ChatManager {
-        return chatManager ?: synchronized(this) {
-            chatManager ?: ChatManager(
-                context,
-                SimplexBridge(),
-                database(context).messageDao(),
-                database(context).contactDao()
-            ).also { chatManager = it }
-        }
-    }
-
     fun walletManager(identityManager: IdentityManager): WalletManager {
         return walletManager ?: synchronized(this) {
             walletManager ?: WalletManager(identityManager).also { walletManager = it }
-        }
-    }
-
-    fun thirdwebContractService(context: Context): ThirdwebContractService {
-        return thirdwebContractService ?: synchronized(this) {
-            val identityManager = identityManager(context)
-            thirdwebContractService ?: ThirdwebContractService(
-                evmRpcService(),
-                walletManager(identityManager)
-            ).also { thirdwebContractService = it }
         }
     }
 }

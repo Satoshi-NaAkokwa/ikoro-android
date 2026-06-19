@@ -14,44 +14,13 @@ android {
         applicationId = "com.ikoro.android"
         minSdk = 24
         targetSdk = 34
-        versionCode = 13
-        versionName = "0.1.3"
+        versionCode = 20
+        versionName = "0.2.0-wallet"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
             useSupportLibrary = true
         }
-
-        val thirdwebClientId: String = "902af4d9fc7f1f98d7d5e820d7896a4e"
-        buildConfigField("String", "THIRDWEB_CLIENT_ID", "\"$thirdwebClientId\"")
-        val livekitUrl: String = project.findProperty("livekitUrl") as? String
-            ?: project.findProperty("livekit_url") as? String
-            ?: "wss://livekit.ugogbe.info"
-        buildConfigField("String", "LIVEKIT_URL", "\"$livekitUrl\"")
-
-        val livekitTokenEndpoint: String = project.findProperty("livekitTokenEndpoint") as? String
-            ?: project.findProperty("livekit_token_endpoint") as? String
-            ?: "https://livekit.ugogbe.info/livekit/token"
-        buildConfigField("String", "LIVEKIT_TOKEN_ENDPOINT", "\"$livekitTokenEndpoint\"")
-
-        val agabraNpub: String = project.findProperty("agabraNpub") as? String
-            ?: project.findProperty("agabra_npub") as? String
-            ?: "npub13ufag8855wayvsf0kzu9ml3dh8yc55pp0z89fd3pnswdxp28gfsqch86wq"
-        buildConfigField("String", "AGABRA_NPUB", "\"$agabraNpub\"")
-
-        val marketplaceContractAddress: String = project.findProperty("marketplaceContractAddress") as? String ?: ""
-        buildConfigField("String", "MARKETPLACE_CONTRACT_ADDRESS", "\"$marketplaceContractAddress\"")
-
-        val escrowContractAddress: String = project.findProperty("escrowContractAddress") as? String ?: ""
-        buildConfigField("String", "ESCROW_CONTRACT_ADDRESS", "\"$escrowContractAddress\"")
-
-        val ntfyServerUrl: String = project.findProperty("ntfyServerUrl") as? String
-            ?: project.findProperty("ntfy_server_url") as? String
-            ?: "https://ntfy.ugogbe.info"
-        buildConfigField("String", "NTFY_SERVER_URL", "\"$ntfyServerUrl\"")
-
-        buildConfigField("String", "AGABRA_INVITE_ENDPOINT", "\"https://smp.ugogbe.info/agbara/invite\"")
-        buildConfigField("String", "SMP_SERVER_URI", "\"smp://kG8TDZb0A1r1MCy5do5eVfQTInWPliSI7XOjJObSy1E=:ikoro-smp-pass-2026@smp.ugogbe.info:5223,443\"")
     }
 
     signingConfigs {
@@ -110,7 +79,6 @@ android {
 }
 
 dependencies {
-    // Phase 1: Stable Shell only.
     configurations.all {
         resolutionStrategy {
             force("androidx.core:core-ktx:1.12.0")
@@ -122,16 +90,7 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
     implementation("androidx.activity:activity-compose:1.8.2")
     implementation("androidx.appcompat:appcompat:1.6.1")
-    implementation("androidx.biometric:biometric:1.1.0")
     implementation("androidx.security:security-crypto:1.1.0-alpha06")
-    implementation("androidx.datastore:datastore-preferences:1.0.0")
-
-    // Compose BOM
-    // Nostr SDK for cross-platform secure DMs to Agbara
-    implementation("org.rust-nostr:nostr-sdk-kmp-android:0.44.3")
-
-    // QR codes (generate + scan)
-    implementation("com.google.zxing:core:3.5.3")
 
     implementation(platform("androidx.compose:compose-bom:2024.02.00"))
     implementation("androidx.compose.ui:ui")
@@ -139,30 +98,16 @@ dependencies {
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-extended:1.6.0")
-    implementation("com.airbnb.android:lottie-compose:6.3.0")
+
+    // Networking / crypto
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
 
     // Serialization
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
 
-    // Database (placeholder for later phases)
-    implementation("androidx.room:room-runtime:2.6.1")
-    implementation("androidx.room:room-ktx:2.6.1")
-    ksp("androidx.room:room-compiler:2.6.1")
-
-    // Networking / crypto
-    implementation("com.squareup.okhttp3:okhttp:4.12.0")
-    implementation("com.squareup.okhttp3:okhttp-sse:4.12.0")
-    implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
-    implementation("com.google.zxing:core:3.5.3")
-
     // Trust Wallet Core: keys, signing, address derivation for BTC+EVM
     implementation("com.trustwallet:wallet-core:4.2.10")
-
-    // thirdweb Android SDK: EVM RPC + contracts + in-app wallet helpers
-    implementation("com.thirdweb:connect:0.0.1")
-
-    // LiveKit calls
-    implementation("io.livekit:livekit-android:2.11.1")
 
     // Logging
     implementation("com.jakewharton.timber:timber:5.0.1")

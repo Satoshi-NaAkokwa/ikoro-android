@@ -49,13 +49,15 @@ import com.ikoro.android.data.model.Asset
 import com.ikoro.android.data.model.Identity
 import com.ikoro.android.domain.identity.IdentityManager
 import com.ikoro.android.domain.wallet.WalletManager
-import com.ikoro.android.ui.components.EmptyAnimations
 import com.ikoro.android.ui.components.EmptyState
 import timber.log.Timber
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun WalletScreen(identityManager: IdentityManager) {
+fun WalletScreen(
+    identityManager: IdentityManager,
+    modifier: Modifier = Modifier
+) {
     val walletManager = remember(identityManager) { WalletManager(identityManager) }
     val identityState: State<Identity?> = produceState<Identity?>(null) {
         value = identityManager.loadExistingIdentity()
@@ -78,6 +80,7 @@ fun WalletScreen(identityManager: IdentityManager) {
     }
 
     Scaffold(
+        modifier = modifier,
         topBar = { TopAppBar(title = { Text(stringResource(R.string.wallet)) }) },
         floatingActionButton = {
             if (loadError.isBlank()) {
@@ -99,7 +102,8 @@ fun WalletScreen(identityManager: IdentityManager) {
                 EmptyState(
                     title = "No identity",
                     subtitle = "Create or restore your identity to use the wallet.",
-                    animationRes = EmptyAnimations.wallet
+                    actionLabel = "Create identity",
+                    onAction = { /* controlled by parent */ }
                 )
                 return@Column
             }

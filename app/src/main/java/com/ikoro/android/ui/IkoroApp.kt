@@ -9,18 +9,16 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import com.ikoro.android.di.ServiceLocator
 import com.ikoro.android.domain.identity.IdentityManager
-import com.ikoro.android.ui.onboarding.OnboardingScreen
 import com.ikoro.android.ui.main.MainShell
+import com.ikoro.android.ui.onboarding.OnboardingScreen
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import timber.log.Timber
 
 @Composable
 fun IkoroApp(identityManager: IdentityManager) {
-    val context = LocalContext.current
     var ready by remember { mutableStateOf(false) }
     var hasIdentity by remember { mutableStateOf(false) }
 
@@ -38,10 +36,6 @@ fun IkoroApp(identityManager: IdentityManager) {
                 } catch (e: Exception) {
                     Timber.e(e, "WalletManager init failed")
                 }
-                ServiceLocator.chatManager(context).initialize(
-                    serverUri = com.ikoro.android.BuildConfig.SMP_SERVER_URI,
-                    profileName = "Ikoro user"
-                )
             }
         }
     }
@@ -55,7 +49,11 @@ fun IkoroApp(identityManager: IdentityManager) {
         Scaffold { padding ->
             MainShell(
                 modifier = Modifier.padding(padding),
-                identityManager = identityManager
+                identityManager = identityManager,
+                onResetIdentity = {
+                    identityManager.clearIdentity()
+                    hasIdentity = false
+                }
             )
         }
     }
